@@ -13,6 +13,11 @@
 
 #include <nanogui/nanogui.h>
 
+// NOTE: do not define STB_IMAGE_IMPLEMENTATION
+// 	     it would conflict with nanovg.c (libnanogui.a)
+// #define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include "Shader.h"
 #include "Camera.h"
 #include "Object.h"
