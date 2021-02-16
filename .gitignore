@@ -1,6 +1,7 @@
 # Extern
 /extern/.cache
 /extern/nanogui
+/extern/glm
 /extern/*
 
 # Build
