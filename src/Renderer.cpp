@@ -426,7 +426,7 @@ void Renderer::setup_uniform_values(Shader& shader)
     glm::vec3 custom_color = glm::vec3(1.0f, 0.5f, 0.2f);
 
     // Set in shader program
-    // Uniforms for GLSL abcdefgh
+    // Uniforms for GLSL: halfway -- ab
     unsigned int modelLoc = glGetUniformLocation(shader.program, "model_mat");
     unsigned int viewLoc = glGetUniformLocation(shader.program, "view");
     unsigned int projLoc = glGetUniformLocation(shader.program, "projection");
@@ -441,7 +441,7 @@ void Renderer::setup_uniform_values(Shader& shader)
     glUniform3fv(objcolLoc, 1, glm::value_ptr(custom_color));
     glUniform3fv(camposLoc, 1, glm::value_ptr(m_camera->position));
 
-
+    // Directional Light Uniforms
     unsigned int dLightDirLoc = glGetUniformLocation(shader.program, "dlight_dir");
     unsigned int dLightAmbLoc = glGetUniformLocation(shader.program, "dlight_amb");
     unsigned int dLightDifLoc = glGetUniformLocation(shader.program, "dlight_dif");
@@ -452,7 +452,7 @@ void Renderer::setup_uniform_values(Shader& shader)
     glUniform3fv(dLightDifLoc, 1, glm::value_ptr(m_lightings->direction_light.diffuse));
     glUniform3fv(dLightSpcLoc, 1, glm::value_ptr(m_lightings->direction_light.specular));
 
-
+    // Positional Light Uniforms 
     unsigned int pLightPosLoc = glGetUniformLocation(shader.program, "plight_pos");
     unsigned int pLightAmbLoc = glGetUniformLocation(shader.program, "plight_amb");
     unsigned int pLightDifLoc = glGetUniformLocation(shader.program, "plight_dif");
