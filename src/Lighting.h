@@ -44,7 +44,7 @@ public:
         reset_position = newpos;
     }
 
-    glm::vec3 set_reset_pos()
+    glm::vec3 get_reset_pos()
     {
         return reset_position;
     }

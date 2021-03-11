@@ -494,11 +494,41 @@ void Renderer::setup_uniform_values(Shader &shader)
     glm::mat4 projection = glm::mat4(1.0f);
     projection = glm::perspective(glm::radians(m_camera->zoom), aspect_ratio, nano_znear, nano_zfar);
 
-    glm::vec3 custom_color = glm::vec3(nano_col_val[0], nano_col_val[1], nano_col_val[2]);
+    // glm::vec3 custom_color = glm::vec3(nano_col_val[0], nano_col_val[1], nano_col_val[2]);
+    glm::vec3 custom_color = glm::vec3(1.0f,1.0f,1.0f);
     
     m_lightings->direction_light.direction = glm::vec3(glm::inverse(view) * glm::vec4(CCS_lightDir, 0.0f));
 
-    
+    // Rotation of Point Light
+    glm::vec3 pointL_pos = m_lightings->point_light.position;
+    float theta = (float) glfwGetTime();
+    float sin_theta = glm::sin(theta);
+    float cos_theta = glm::cos(theta);
+    if(n_pLight_rotX) {
+        float y = pointL_pos[1];
+        float z = pointL_pos[2];
+        float mag = glm::sqrt(y*y + z*z);
+        pointL_pos[1] = mag * cos_theta;
+        pointL_pos[2] = mag * sin_theta;
+        m_lightings->point_light.position = pointL_pos;
+    } else if(n_pLight_rotY) {
+        float x = pointL_pos[1];
+        float z = pointL_pos[2];
+        float mag = glm::sqrt(x*x + z*z);
+        pointL_pos[0] = mag * cos_theta;
+        pointL_pos[2] = mag * sin_theta;
+        m_lightings->point_light.position = pointL_pos;
+    } else if(n_pLight_rotZ) {
+        float x = pointL_pos[0];
+        float y = pointL_pos[1];
+        float mag = glm::sqrt(y*y + x*x);
+        pointL_pos[0] = mag * cos_theta;
+        pointL_pos[1] = mag * sin_theta;
+        m_lightings->point_light.position = pointL_pos;
+    } else if(n_pLight_reset) {
+        m_lightings->point_light.position = m_lightings->get_reset_pos();
+        n_pLight_reset = false; // reset the value back to sane default.
+    }
 
     // Set in shader program
     // Uniforms for GLSL: halfway -- ab
