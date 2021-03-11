@@ -231,7 +231,8 @@ void Renderer::nanogui_init(GLFWwindow* window)
 
 void Renderer::display(GLFWwindow* window)
 {
-    Shader m_shader = Shader("../src/shader/basic.vert", "../src/shader/basic.frag");
+    // Shader m_shader = Shader("../src/shader/basic.vert", "../src/shader/basic.frag");
+    Shader m_shader = Shader("../src/shader/light.vert", "../src/shader/light.frag");
 
     // Main frame while loop
     while (!glfwWindowShouldClose(window))
@@ -421,42 +422,46 @@ void Renderer::setup_uniform_values(Shader& shader)
 
     // glm::vec4 custom_color = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f); // placeholder value for now!
     // glm::vec4 custom_color = glm::vec4(nano_col_val[0], nano_col_val[1], nano_col_val[2], nano_col_val[3]);
-    glm::vec3 custom_color = glm::vec3(nano_col_val[0], nano_col_val[1], nano_col_val[2]);
+    // glm::vec3 custom_color = glm::vec3(nano_col_val[0], nano_col_val[1], nano_col_val[2]);
+    glm::vec3 custom_color = glm::vec3(1.0f, 0.5f, 0.2f);
 
-    // Set in shader program    
+    // Set in shader program
+    // Uniforms for GLSL
     unsigned int modelLoc = glGetUniformLocation(shader.program, "model_mat");
     unsigned int viewLoc = glGetUniformLocation(shader.program, "view");
     unsigned int projLoc = glGetUniformLocation(shader.program, "projection");
-    
-    unsigned int objcolLoc = glGetUniformLocation(shader.program, "object_color");
-    unsigned int camposLoc = glGetUniformLocation(shader.program, "view_position");
-    
-    unsigned int dLightDirLoc = glGetUniformLocation(shader.program, "dlight_dir");
-    unsigned int dLightAmbLoc = glGetUniformLocation(shader.program, "dlight_amb");
-    unsigned int dLightDifLoc = glGetUniformLocation(shader.program, "dlight_dif");
-    unsigned int dLightSpcLoc = glGetUniformLocation(shader.program, "dlight_spc");
-    
-    unsigned int pLightPosLoc = glGetUniformLocation(shader.program, "plight_pos");
-    unsigned int pLightAmbLoc = glGetUniformLocation(shader.program, "plight_amb");
-    unsigned int pLightDifLoc = glGetUniformLocation(shader.program, "plight_dif");
-    unsigned int pLightSpcLoc = glGetUniformLocation(shader.program, "plight_spc");
-    
+
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model_mat));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-    glUniform3fv(objcolLoc, 1, glm::value_ptr(custom_color));
-    glUniform3fv(camposLoc, 1, glm::value_ptr(m_camera->position));
 
-    glUniform3fv(dLightDirLoc, 1, glm::value_ptr(m_lightings->direction_light.direction));
-    glUniform3fv(dLightAmbLoc, 1, glm::value_ptr(m_lightings->direction_light.ambient));
-    glUniform3fv(dLightDifLoc, 1, glm::value_ptr(m_lightings->direction_light.diffuse));
-    glUniform3fv(dLightSpcLoc, 1, glm::value_ptr(m_lightings->direction_light.specular));
+    // unsigned int objcolLoc = glGetUniformLocation(shader.program, "object_color");
+    // unsigned int camposLoc = glGetUniformLocation(shader.program, "view_position");  
+    // glUniform3fv(objcolLoc, 1, glm::value_ptr(custom_color));
+    // glUniform3fv(camposLoc, 1, glm::value_ptr(m_camera->position));
 
-    glUniform3fv(pLightPosLoc, 1, glm::value_ptr(m_lightings->point_light.position));
-    glUniform3fv(pLightAmbLoc, 1, glm::value_ptr(m_lightings->point_light.ambient));
-    glUniform3fv(pLightDifLoc, 1, glm::value_ptr(m_lightings->point_light.diffuse));
-    glUniform3fv(pLightSpcLoc, 1, glm::value_ptr(m_lightings->point_light.specular));
+
+    // unsigned int dLightDirLoc = glGetUniformLocation(shader.program, "dlight_dir");
+    // unsigned int dLightAmbLoc = glGetUniformLocation(shader.program, "dlight_amb");
+    // unsigned int dLightDifLoc = glGetUniformLocation(shader.program, "dlight_dif");
+    // unsigned int dLightSpcLoc = glGetUniformLocation(shader.program, "dlight_spc");  
+
+    // glUniform3fv(dLightDirLoc, 1, glm::value_ptr(m_lightings->direction_light.direction));
+    // glUniform3fv(dLightAmbLoc, 1, glm::value_ptr(m_lightings->direction_light.ambient));
+    // glUniform3fv(dLightDifLoc, 1, glm::value_ptr(m_lightings->direction_light.diffuse));
+    // glUniform3fv(dLightSpcLoc, 1, glm::value_ptr(m_lightings->direction_light.specular));
+
+
+    // unsigned int pLightPosLoc = glGetUniformLocation(shader.program, "plight_pos");
+    // unsigned int pLightAmbLoc = glGetUniformLocation(shader.program, "plight_amb");
+    // unsigned int pLightDifLoc = glGetUniformLocation(shader.program, "plight_dif");
+    // unsigned int pLightSpcLoc = glGetUniformLocation(shader.program, "plight_spc");
+
+    // glUniform3fv(pLightPosLoc, 1, glm::value_ptr(m_lightings->point_light.position));
+    // glUniform3fv(pLightAmbLoc, 1, glm::value_ptr(m_lightings->point_light.ambient));
+    // glUniform3fv(pLightDifLoc, 1, glm::value_ptr(m_lightings->point_light.diffuse));
+    // glUniform3fv(pLightSpcLoc, 1, glm::value_ptr(m_lightings->point_light.specular));
 
 }
 
