@@ -4,6 +4,8 @@ Camera* Renderer::m_camera = new Camera();
 
 nanogui::Screen* Renderer::m_nanogui_screen = nullptr;
 
+Lighting* Renderer::m_lightings = new Lighting();
+
 /*
  * TODO: Deprecate these
  * 		and use Object::vao and Object::vbo instead for your loaded model
@@ -30,6 +32,7 @@ nanogui::Screen* Renderer::m_nanogui_screen = nullptr;
 
 // Pre-defined
 bool Renderer::keys[1024];
+
 enum render_type
 {
     POINT = 0,
@@ -106,9 +109,9 @@ void Renderer::init()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
-#if defined(__APPLE__)
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
+    #if defined(__APPLE__)
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    #endif
 
     m_camera->init();
 
@@ -120,6 +123,9 @@ void Renderer::init()
     glewInit();
 
     nanogui_init(this->m_window);
+
+    // todo: add lighting init somewhere here?
+    m_lightings->init();
 }
 
 void Renderer::nanogui_init(GLFWwindow* window)
@@ -399,12 +405,10 @@ void Renderer::setup_uniform_values(Shader& shader)
 {
     /*
      * TODO: Define uniforms for your shader
-     */
+    */
 
     // Model matrix.
     glm::mat4 model_mat = glm::mat4(1.0f);
-    // glm::vec3 scale_down = glm::vec3(0.5f, 0.5f, 0.5f);
-    // model_mat = glm::scale(model_mat, scale_down);
 
     // View Matrix
     glm::mat4 view = glm::mat4(1.0f);
@@ -416,19 +420,44 @@ void Renderer::setup_uniform_values(Shader& shader)
     projection = glm::perspective(glm::radians(m_camera->zoom), aspect_ratio, nano_znear, nano_zfar);
 
     // glm::vec4 custom_color = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f); // placeholder value for now!
-    glm::vec4 custom_color =
-        glm::vec4(nano_col_val[0], nano_col_val[1], nano_col_val[2], nano_col_val[3]);
+    // glm::vec4 custom_color = glm::vec4(nano_col_val[0], nano_col_val[1], nano_col_val[2], nano_col_val[3]);
+    glm::vec3 custom_color = glm::vec3(nano_col_val[0], nano_col_val[1], nano_col_val[2]);
 
-    // Set in shader program
-    unsigned int colLoc = glGetUniformLocation(shader.program, "custom_color");
+    // Set in shader program    
     unsigned int modelLoc = glGetUniformLocation(shader.program, "model_mat");
     unsigned int viewLoc = glGetUniformLocation(shader.program, "view");
     unsigned int projLoc = glGetUniformLocation(shader.program, "projection");
-
-    glUniform4fv(colLoc, 1, glm::value_ptr(custom_color));
+    
+    unsigned int objcolLoc = glGetUniformLocation(shader.program, "object_color");
+    unsigned int camposLoc = glGetUniformLocation(shader.program, "view_position");
+    
+    unsigned int dLightDirLoc = glGetUniformLocation(shader.program, "dlight_dir");
+    unsigned int dLightAmbLoc = glGetUniformLocation(shader.program, "dlight_amb");
+    unsigned int dLightDifLoc = glGetUniformLocation(shader.program, "dlight_dif");
+    unsigned int dLightSpcLoc = glGetUniformLocation(shader.program, "dlight_spc");
+    
+    unsigned int pLightPosLoc = glGetUniformLocation(shader.program, "plight_pos");
+    unsigned int pLightAmbLoc = glGetUniformLocation(shader.program, "plight_amb");
+    unsigned int pLightDifLoc = glGetUniformLocation(shader.program, "plight_dif");
+    unsigned int pLightSpcLoc = glGetUniformLocation(shader.program, "plight_spc");
+    
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model_mat));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+    glUniform3fv(objcolLoc, 1, glm::value_ptr(custom_color));
+    glUniform3fv(camposLoc, 1, glm::value_ptr(m_camera->position));
+
+    glUniform3fv(dLightDirLoc, 1, glm::value_ptr(m_lightings->direction_light.direction));
+    glUniform3fv(dLightAmbLoc, 1, glm::value_ptr(m_lightings->direction_light.ambient));
+    glUniform3fv(dLightDifLoc, 1, glm::value_ptr(m_lightings->direction_light.diffuse));
+    glUniform3fv(dLightSpcLoc, 1, glm::value_ptr(m_lightings->direction_light.specular));
+
+    glUniform3fv(pLightPosLoc, 1, glm::value_ptr(m_lightings->point_light.position));
+    glUniform3fv(pLightAmbLoc, 1, glm::value_ptr(m_lightings->point_light.ambient));
+    glUniform3fv(pLightDifLoc, 1, glm::value_ptr(m_lightings->point_light.diffuse));
+    glUniform3fv(pLightSpcLoc, 1, glm::value_ptr(m_lightings->point_light.specular));
+
 }
 
 void Renderer::camera_move()
