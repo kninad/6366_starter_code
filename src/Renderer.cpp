@@ -426,7 +426,7 @@ void Renderer::setup_uniform_values(Shader& shader)
     glm::vec3 custom_color = glm::vec3(1.0f, 0.5f, 0.2f);
 
     // Set in shader program
-    // Uniforms for GLSL abcdef
+    // Uniforms for GLSL abcdefgh
     unsigned int modelLoc = glGetUniformLocation(shader.program, "model_mat");
     unsigned int viewLoc = glGetUniformLocation(shader.program, "view");
     unsigned int projLoc = glGetUniformLocation(shader.program, "projection");
