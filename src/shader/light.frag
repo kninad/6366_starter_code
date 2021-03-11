@@ -8,6 +8,9 @@ in vec3 Normal;
 uniform vec3 object_color;
 uniform vec3 view_position;
 
+uniform bool on_Dlight;
+uniform bool on_Plight;
+
 uniform vec3 dlight_dir;
 uniform vec3 dlight_amb;
 uniform vec3 dlight_dif;
@@ -25,9 +28,16 @@ void main()
 {
     vec3 normHat = normalize(Normal);
     vec3 viewDir = normalize(view_position - FragPos);
+    vec3 final = vec3(0.0, 0.0, 0.0);
+    if (on_Dlight)
+    {
+        final += CalcDirLight(dlight_dir, dlight_amb, dlight_dif, dlight_spc, normHat, viewDir);
+    }
+    if(on_Plight)
+    {
+        final += CalcPointLight(plight_pos, plight_amb, plight_dif, plight_spc, normHat, FragPos, viewDir);
+    }   
     
-    vec3 final = CalcDirLight(dlight_dir, dlight_amb, dlight_dif, dlight_spc, normHat, viewDir);
-    final += CalcPointLight(plight_pos, plight_amb, plight_dif, plight_spc, normHat, FragPos, viewDir);     
     final *= object_color;
     FragColor = vec4(final, 1.0);
 

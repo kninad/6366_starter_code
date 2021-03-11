@@ -10,7 +10,7 @@ class Lighting
      * TODO: Define lighting parameters
     */
 
-    glm::vec3 locorg_plight;
+    glm::vec3 reset_position;
 
     struct Direction_Light
     {
@@ -33,10 +33,21 @@ class Lighting
 public:
     Direction_Light direction_light;
     Point_Light point_light;
+    
 
     Lighting() {}
 
     ~Lighting() {}
+
+    void set_reset_pos(glm::vec3 newpos)
+    {
+        reset_position = newpos;
+    }
+
+    glm::vec3 set_reset_pos()
+    {
+        return reset_position;
+    }
 
     /*
     * TODO: Init all lighting parameters
@@ -54,7 +65,7 @@ public:
         point_light.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
         point_light.specular = glm::vec3(1.0f, 1.0f, 1.0f);
 
-        locorg_plight = point_light.position; // just for init
+        reset_position = point_light.position; // just for init
 
     };
 };

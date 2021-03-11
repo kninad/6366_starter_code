@@ -1,10 +1,10 @@
 #include "Renderer.h"
 
-Camera* Renderer::m_camera = new Camera();
+Camera *Renderer::m_camera = new Camera();
 
-nanogui::Screen* Renderer::m_nanogui_screen = nullptr;
+nanogui::Screen *Renderer::m_nanogui_screen = nullptr;
 
-Lighting* Renderer::m_lightings = new Lighting();
+Lighting *Renderer::m_lightings = new Lighting();
 
 glm::vec3 CCS_lightDir = glm::vec3(0.0f, 1.0f, 1.0f);
 
@@ -59,7 +59,7 @@ enum depth_type
 
 // Global Vars for Nano GUI
 nanogui::Color nano_col_val(0.10f, 0.4f, 0.8f, 1.0f);
-std::string nano_model_name = "rock.obj";  // Deafault to Rock
+std::string nano_model_name = "rock.obj"; // Deafault to Rock
 
 float nano_campos_x = 0.0f;
 float nano_campos_y = 0.0f;
@@ -83,6 +83,24 @@ culling_type nano_enum_cull = CW;
 // good init for 1st run and to ensure Renderer::is_scene_reset starts with a true
 bool nano_reload_model = true;
 bool nano_reset = false;
+
+// Second Nano GUI Global Vars (Lighting)
+
+bool n_pLight_reset = false; // Reset dynamic point light?
+
+bool n_pLight_rotX = false;
+bool n_pLight_rotY = false;
+bool n_pLight_rotZ = false;
+
+bool n_on_dirL = true;
+nanogui::Color n_dirL_amb(0.05f, 0.05f, 0.05f, 1.0f);
+nanogui::Color n_dirL_dif(0.05f, 0.05f, 0.05f, 1.0f);
+nanogui::Color n_dirL_spc(0.05f, 0.05f, 0.05f, 1.0f);
+
+bool n_on_posL = true;
+nanogui::Color n_posL_amb(0.05f, 0.05f, 0.05f, 1.0f);
+nanogui::Color n_posL_dif(0.05f, 0.05f, 0.05f, 1.0f);
+nanogui::Color n_posL_spc(0.05f, 0.05f, 0.05f, 1.0f);
 
 /*
  * TODO: Remeber to use these variables
@@ -111,9 +129,9 @@ void Renderer::init()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
-    #if defined(__APPLE__)
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    #endif
+#if defined(__APPLE__)
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
     m_camera->init();
 
@@ -130,25 +148,71 @@ void Renderer::init()
     m_lightings->init();
 }
 
-void Renderer::nanogui_init(GLFWwindow* window)
+void Renderer::nanogui_init(GLFWwindow *window)
 {
     m_nanogui_screen = new nanogui::Screen();
     m_nanogui_screen->initialize(window, true);
 
     glViewport(0, 0, m_camera->width, m_camera->height);
 
-    // Create nanogui gui
-    nanogui::FormHelper* gui = new nanogui::FormHelper(m_nanogui_screen);
+    bool enabled = true;
+
+    // ********************************************************************
+
+    // 2nd nanogui GUI
+    nanogui::FormHelper *gui_2 = new nanogui::FormHelper(m_nanogui_screen);
+    nanogui::ref<nanogui::Window> nanoguiWindow2 =
+        gui_2->addWindow(Eigen::Vector2i(10, 10), "Nanogui control bar2: Lights");
+
+    gui_2->addVariable("Point Light Status", n_on_posL);
+    
+    gui_2->addVariable("Direction Light Status", n_on_dirL);
+
+    gui_2->addVariable("DirL Ambient Color", n_dirL_amb)->setFinalCallback([](const nanogui::Color &c) {
+        std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
+        n_dirL_amb = c;     });
+
+    gui_2->addVariable("DirL Diffuse Color", n_dirL_dif)->setFinalCallback([](const nanogui::Color &c) {
+        std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
+        n_dirL_dif = c;    });
+
+    gui_2->addVariable("DirL Specular Color", n_dirL_spc)->setFinalCallback([](const nanogui::Color &c) {
+        std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
+        n_dirL_spc = c;    });
+
+    gui_2->addButton("Reset Point Light", []() { n_pLight_reset = true; });
+
+    gui_2->addVariable("PosL Ambient Color", n_posL_amb)->setFinalCallback([](const nanogui::Color &c) {
+        std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
+        n_posL_amb = c; });    
+
+    gui_2->addVariable("PosL Diffuse Color", n_posL_dif)->setFinalCallback([](const nanogui::Color &c) {
+        std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
+        n_posL_dif = c;    });    
+
+    gui_2->addVariable("PosL Specular Color", n_posL_spc)->setFinalCallback([](const nanogui::Color &c) {
+        std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
+        n_posL_spc = c;    });    
+
+    gui_2->addVariable("Point Light Rot X", n_pLight_rotX);
+
+    gui_2->addVariable("Point Light Rot Y", n_pLight_rotY);
+    
+    gui_2->addVariable("Point Light Rot Z", n_pLight_rotZ);
+
+    // ********************************************************************
+
+    // Create nanogui gui - 1
+    nanogui::FormHelper *gui = new nanogui::FormHelper(m_nanogui_screen);
     nanogui::ref<nanogui::Window> nanoguiWindow =
         gui->addWindow(Eigen::Vector2i(0, 0), "Nanogui control bar_1");
 
     /*
      *	TODO: Define your GUI components here
      */
-    bool enabled = true;
 
     gui->addGroup("Color");
-    gui->addVariable("Object Color", nano_col_val)->setFinalCallback([](const nanogui::Color& c) {
+    gui->addVariable("Object Color", nano_col_val)->setFinalCallback([](const nanogui::Color &c) {
         std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b()
                   << ", " << c.w() << "]" << std::endl;
         nano_col_val = c;
@@ -190,18 +254,20 @@ void Renderer::nanogui_init(GLFWwindow* window)
     gui->addButton("Reset", []() { nano_reset = true; })
         ->setTooltip("Testing a much longer tooltip.");
 
+    // ********************************************************************
+
     m_nanogui_screen->setVisible(true);
     m_nanogui_screen->performLayout();
 
-    glfwSetCursorPosCallback(window, [](GLFWwindow* window, double x, double y) {
+    glfwSetCursorPosCallback(window, [](GLFWwindow *window, double x, double y) {
         m_nanogui_screen->cursorPosCallbackEvent(x, y);
     });
 
-    glfwSetMouseButtonCallback(window, [](GLFWwindow*, int button, int action, int modifiers) {
+    glfwSetMouseButtonCallback(window, [](GLFWwindow *, int button, int action, int modifiers) {
         m_nanogui_screen->mouseButtonCallbackEvent(button, action, modifiers);
     });
 
-    glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+    glfwSetKeyCallback(window, [](GLFWwindow *window, int key, int scancode, int action, int mods) {
         if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
             glfwSetWindowShouldClose(window, GL_TRUE);
         if (key >= 0 && key < 1024)
@@ -213,25 +279,25 @@ void Renderer::nanogui_init(GLFWwindow* window)
         }
     });
 
-    glfwSetCharCallback(window, [](GLFWwindow*, unsigned int codepoint) {
+    glfwSetCharCallback(window, [](GLFWwindow *, unsigned int codepoint) {
         m_nanogui_screen->charCallbackEvent(codepoint);
     });
 
-    glfwSetDropCallback(window, [](GLFWwindow*, int count, const char** filenames) {
+    glfwSetDropCallback(window, [](GLFWwindow *, int count, const char **filenames) {
         m_nanogui_screen->dropCallbackEvent(count, filenames);
     });
 
-    glfwSetScrollCallback(window, [](GLFWwindow*, double x, double y) {
+    glfwSetScrollCallback(window, [](GLFWwindow *, double x, double y) {
         m_nanogui_screen->scrollCallbackEvent(x, y);
         // m_camera->ProcessMouseScroll(y);
     });
 
-    glfwSetFramebufferSizeCallback(window, [](GLFWwindow*, int width, int height) {
+    glfwSetFramebufferSizeCallback(window, [](GLFWwindow *, int width, int height) {
         m_nanogui_screen->resizeCallbackEvent(width, height);
     });
 }
 
-void Renderer::display(GLFWwindow* window)
+void Renderer::display(GLFWwindow *window)
 {
     // Shader m_shader = Shader("../src/shader/basic.vert", "../src/shader/basic.frag");
     Shader m_shader = Shader("../src/shader/light.vert", "../src/shader/light.frag");
@@ -252,7 +318,7 @@ void Renderer::display(GLFWwindow* window)
         {
             scene_reset();
             std::cout << "\n[DebugLog] Scene has been reset!\n";
-            is_scene_reset = false;  // just a safety check!
+            is_scene_reset = false; // just a safety check!
             nano_reload_model = false;
             nano_reset = false;
         }
@@ -299,21 +365,22 @@ void Renderer::load_models()
     {
         model_name = obj_path + nano_model_name;
         std::cout << "\n[DebugLog] NanoObjPath: " << obj_path << nano_model_name;
-        std::cout << "\n[DebugLog] Final Model Name: \n" << model_name;
+        std::cout << "\n[DebugLog] Final Model Name: \n"
+                  << model_name;
     }
     cur_obj_ptr = new Object(model_name);
 
     // Object model(model_name);
-    glGenVertexArrays(1, &(cur_obj_ptr->vao));  // public member
+    glGenVertexArrays(1, &(cur_obj_ptr->vao)); // public member
     glGenBuffers(1, &(cur_obj_ptr->vbo));
     glGenBuffers(1, &(cur_obj_ptr->ebo));
 
     // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute
     // pointer(s).
-    glBindVertexArray(cur_obj_ptr->vao);  // model.vao);
+    glBindVertexArray(cur_obj_ptr->vao); // model.vao);
     // and then a bit of how the cube code works?
 
-    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);  // model.vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo); // model.vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Object::Vertex) * cur_obj_ptr->vao_vertices.size(),
                  &(cur_obj_ptr->vao_vertices[0]), GL_STATIC_DRAW);
 
@@ -322,18 +389,18 @@ void Renderer::load_models()
                  &(cur_obj_ptr->veo_indices[0]), GL_STATIC_DRAW);
 
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid *)0);
     glEnableVertexAttribArray(0);
     // Normal attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat),
-                          (GLvoid*)(3 * sizeof(GLfloat)));
+                          (GLvoid *)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
     // Texture attribute
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat),
-                          (GLvoid*)(6 * sizeof(GLfloat)));
+                          (GLvoid *)(6 * sizeof(GLfloat)));
     glEnableVertexAttribArray(2);
 
-    glBindVertexArray(0);  // Unbind VAO
+    glBindVertexArray(0); // Unbind VAO
 
     // obj_list.push_back(model);
 
@@ -345,10 +412,15 @@ void Renderer::load_models()
     nano_campos_x = cur_obj_ptr->center_cam_pos[0];
     nano_campos_y = cur_obj_ptr->center_cam_pos[1];
     nano_campos_z = cur_obj_ptr->center_cam_pos[2];
+
+    // Also Set the Initial Location for the Point Light
+    m_lightings->point_light.position = cur_obj_ptr->center_cam_pos;
+    m_lightings->set_reset_pos(cur_obj_ptr->center_cam_pos); // Save the reset position for point light
+
     nanogui_init(this->m_window);
 }
 
-void Renderer::draw_scene(Shader& shader)
+void Renderer::draw_scene(Shader &shader)
 {
     /*
      * TODO: Remember to enable GL_DEPTH_TEST and GL_CULL_FACE
@@ -376,7 +448,7 @@ void Renderer::draw_scene(Shader& shader)
     draw_object(shader, *cur_obj_ptr);
 }
 
-void Renderer::draw_object(Shader& shader, Object& object)
+void Renderer::draw_object(Shader &shader, Object &object)
 {
     /*
      * TODO: Draw object
@@ -401,10 +473,10 @@ void Renderer::draw_object(Shader& shader, Object& object)
     }
     glDrawArrays(our_mode, 0, object.vao_vertices.size());
     // glDrawElements(our_mode, object.vao_vertices.size(), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);  // unbind vao.
+    glBindVertexArray(0); // unbind vao.
 }
 
-void Renderer::setup_uniform_values(Shader& shader)
+void Renderer::setup_uniform_values(Shader &shader)
 {
     /*
      * TODO: Define uniforms for your shader
@@ -422,12 +494,11 @@ void Renderer::setup_uniform_values(Shader& shader)
     glm::mat4 projection = glm::mat4(1.0f);
     projection = glm::perspective(glm::radians(m_camera->zoom), aspect_ratio, nano_znear, nano_zfar);
 
-    // glm::vec4 custom_color = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f); // placeholder value for now!
-    // glm::vec4 custom_color = glm::vec4(nano_col_val[0], nano_col_val[1], nano_col_val[2], nano_col_val[3]);
     glm::vec3 custom_color = glm::vec3(nano_col_val[0], nano_col_val[1], nano_col_val[2]);
-    // glm::vec3 custom_color = glm::vec3(1.0f, 0.5f, 0.2f);
-
+    
     m_lightings->direction_light.direction = glm::vec3(glm::inverse(view) * glm::vec4(CCS_lightDir, 0.0f));
+
+    
 
     // Set in shader program
     // Uniforms for GLSL: halfway -- ab
@@ -439,34 +510,36 @@ void Renderer::setup_uniform_values(Shader& shader)
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-
     unsigned int objcolLoc = glGetUniformLocation(shader.program, "object_color");
-    unsigned int camposLoc = glGetUniformLocation(shader.program, "view_position");  
+    unsigned int camposLoc = glGetUniformLocation(shader.program, "view_position");
     glUniform3fv(objcolLoc, 1, glm::value_ptr(custom_color));
     glUniform3fv(camposLoc, 1, glm::value_ptr(m_camera->position));
 
     // Directional Light Uniforms
+    unsigned int onDLightLoc = glGetUniformLocation(shader.program, "on_Dlight");
     unsigned int dLightDirLoc = glGetUniformLocation(shader.program, "dlight_dir");
     unsigned int dLightAmbLoc = glGetUniformLocation(shader.program, "dlight_amb");
     unsigned int dLightDifLoc = glGetUniformLocation(shader.program, "dlight_dif");
-    unsigned int dLightSpcLoc = glGetUniformLocation(shader.program, "dlight_spc");  
+    unsigned int dLightSpcLoc = glGetUniformLocation(shader.program, "dlight_spc");
 
+    glUniform1i(onDLightLoc, n_on_dirL);
     glUniform3fv(dLightDirLoc, 1, glm::value_ptr(m_lightings->direction_light.direction));
     glUniform3fv(dLightAmbLoc, 1, glm::value_ptr(m_lightings->direction_light.ambient));
     glUniform3fv(dLightDifLoc, 1, glm::value_ptr(m_lightings->direction_light.diffuse));
     glUniform3fv(dLightSpcLoc, 1, glm::value_ptr(m_lightings->direction_light.specular));
 
-    // Positional Light Uniforms 
+    // Positional Light Uniforms
+    unsigned int onPLightLoc = glGetUniformLocation(shader.program, "on_Plight");
     unsigned int pLightPosLoc = glGetUniformLocation(shader.program, "plight_pos");
     unsigned int pLightAmbLoc = glGetUniformLocation(shader.program, "plight_amb");
     unsigned int pLightDifLoc = glGetUniformLocation(shader.program, "plight_dif");
     unsigned int pLightSpcLoc = glGetUniformLocation(shader.program, "plight_spc");
 
+    glUniform1i(onPLightLoc, n_on_posL);
     glUniform3fv(pLightPosLoc, 1, glm::value_ptr(m_lightings->point_light.position));
     glUniform3fv(pLightAmbLoc, 1, glm::value_ptr(m_lightings->point_light.ambient));
     glUniform3fv(pLightDifLoc, 1, glm::value_ptr(m_lightings->point_light.diffuse));
     glUniform3fv(pLightSpcLoc, 1, glm::value_ptr(m_lightings->point_light.specular));
-
 }
 
 void Renderer::camera_move()
@@ -481,8 +554,10 @@ void Renderer::camera_move()
 
     // Change camera FOV or Zoom
     // Extra part!
-    if (nano_fov < 1.0f)  nano_fov = 1.0f;
-    if (nano_fov > 75.0f) nano_fov = 75.0f;
+    if (nano_fov < 1.0f)
+        nano_fov = 1.0f;
+    if (nano_fov > 75.0f)
+        nano_fov = 75.0f;
     m_camera->zoom = nano_fov;
 
     // Camera controls
