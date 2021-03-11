@@ -6,6 +6,8 @@ nanogui::Screen* Renderer::m_nanogui_screen = nullptr;
 
 Lighting* Renderer::m_lightings = new Lighting();
 
+glm::vec3 CCS_lightDir = glm::vec3(0.0f, 1.0f, 1.0f);
+
 /*
  * TODO: Deprecate these
  * 		and use Object::vao and Object::vbo instead for your loaded model
@@ -422,8 +424,10 @@ void Renderer::setup_uniform_values(Shader& shader)
 
     // glm::vec4 custom_color = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f); // placeholder value for now!
     // glm::vec4 custom_color = glm::vec4(nano_col_val[0], nano_col_val[1], nano_col_val[2], nano_col_val[3]);
-    // glm::vec3 custom_color = glm::vec3(nano_col_val[0], nano_col_val[1], nano_col_val[2]);
-    glm::vec3 custom_color = glm::vec3(1.0f, 0.5f, 0.2f);
+    glm::vec3 custom_color = glm::vec3(nano_col_val[0], nano_col_val[1], nano_col_val[2]);
+    // glm::vec3 custom_color = glm::vec3(1.0f, 0.5f, 0.2f);
+
+    m_lightings->direction_light.direction = glm::vec3(glm::inverse(view) * glm::vec4(CCS_lightDir, 0.0f));
 
     // Set in shader program
     // Uniforms for GLSL: halfway -- ab
