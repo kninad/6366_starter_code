@@ -498,11 +498,9 @@ void Renderer::setup_uniform_values(Shader &shader)
     glm::vec3 custom_color = glm::vec3(1.0f,1.0f,1.0f);
     
 
-
     // Set the values of Lightings object from Nanogui Controls
-
-    // m_lightings->direction_light.direction = glm::vec3(glm::inverse(view) * glm::vec4(CCS_lightDir, 0.0f));
-    m_lightings->direction_light.direction = glm::vec3(0.0f, 0.0f, 10.0f);
+    m_lightings->direction_light.direction = glm::vec3(glm::inverse(view) * glm::vec4(CCS_lightDir, 0.0f));
+    // m_lightings->direction_light.direction = glm::vec3(0.0f, 0.0f, 10.0f);
 
     m_lightings->direction_light.ambient = Renderer::ngolor_to_glm(n_dirL_amb);
     m_lightings->direction_light.diffuse = Renderer::ngolor_to_glm(n_dirL_dif);
