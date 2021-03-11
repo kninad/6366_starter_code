@@ -74,6 +74,13 @@ class Renderer
     }
 
 
+    glm::vec3 ngolor_to_glm(nanogui::Color color)
+    {
+        glm::vec3 ret_color = glm::vec3(color[0], color[1], color[2]);
+        return ret_color;
+    }
+
+
     void init();
 
     void nanogui_init(GLFWwindow* window);

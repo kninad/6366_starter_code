@@ -92,12 +92,12 @@ bool n_pLight_rotX = false;
 bool n_pLight_rotY = false;
 bool n_pLight_rotZ = false;
 
-bool n_on_dirL = true;
+bool n_on_dirL = false;
 nanogui::Color n_dirL_amb(0.05f, 0.05f, 0.05f, 1.0f);
 nanogui::Color n_dirL_dif(0.05f, 0.05f, 0.05f, 1.0f);
 nanogui::Color n_dirL_spc(0.05f, 0.05f, 0.05f, 1.0f);
 
-bool n_on_posL = true;
+bool n_on_posL = false;
 nanogui::Color n_posL_amb(0.05f, 0.05f, 0.05f, 1.0f);
 nanogui::Color n_posL_dif(0.05f, 0.05f, 0.05f, 1.0f);
 nanogui::Color n_posL_spc(0.05f, 0.05f, 0.05f, 1.0f);
@@ -162,9 +162,7 @@ void Renderer::nanogui_init(GLFWwindow *window)
     // 2nd nanogui GUI
     nanogui::FormHelper *gui_2 = new nanogui::FormHelper(m_nanogui_screen);
     nanogui::ref<nanogui::Window> nanoguiWindow2 =
-        gui_2->addWindow(Eigen::Vector2i(10, 10), "Nanogui control bar2: Lights");
-
-    gui_2->addVariable("Point Light Status", n_on_posL);
+        gui_2->addWindow(Eigen::Vector2i(10, 10), "Nanogui control bar2: Lights");  
     
     gui_2->addVariable("Direction Light Status", n_on_dirL);
 
@@ -180,8 +178,8 @@ void Renderer::nanogui_init(GLFWwindow *window)
         std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
         n_dirL_spc = c;    });
 
-    gui_2->addButton("Reset Point Light", []() { n_pLight_reset = true; });
-
+    gui_2->addVariable("Point Light Status", n_on_posL);
+    
     gui_2->addVariable("PosL Ambient Color", n_posL_amb)->setFinalCallback([](const nanogui::Color &c) {
         std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
         n_posL_amb = c; });    
@@ -199,6 +197,8 @@ void Renderer::nanogui_init(GLFWwindow *window)
     gui_2->addVariable("Point Light Rot Y", n_pLight_rotY);
     
     gui_2->addVariable("Point Light Rot Z", n_pLight_rotZ);
+
+    gui_2->addButton("Reset Point Light", []() { n_pLight_reset = true; });
 
     // ********************************************************************
 
@@ -497,7 +497,20 @@ void Renderer::setup_uniform_values(Shader &shader)
     // glm::vec3 custom_color = glm::vec3(nano_col_val[0], nano_col_val[1], nano_col_val[2]);
     glm::vec3 custom_color = glm::vec3(1.0f,1.0f,1.0f);
     
-    m_lightings->direction_light.direction = glm::vec3(glm::inverse(view) * glm::vec4(CCS_lightDir, 0.0f));
+
+
+    // Set the values of Lightings object from Nanogui Controls
+
+    // m_lightings->direction_light.direction = glm::vec3(glm::inverse(view) * glm::vec4(CCS_lightDir, 0.0f));
+    m_lightings->direction_light.direction = glm::vec3(0.0f, 0.0f, 10.0f);
+
+    m_lightings->direction_light.ambient = Renderer::ngolor_to_glm(n_dirL_amb);
+    m_lightings->direction_light.diffuse = Renderer::ngolor_to_glm(n_dirL_dif);
+    m_lightings->direction_light.specular = Renderer::ngolor_to_glm(n_dirL_spc);
+
+    m_lightings->point_light.ambient = Renderer::ngolor_to_glm(n_posL_amb);
+    m_lightings->point_light.diffuse = Renderer::ngolor_to_glm(n_posL_dif);
+    m_lightings->point_light.specular = Renderer::ngolor_to_glm(n_posL_spc);
 
     // Rotation of Point Light
     glm::vec3 pointL_pos = m_lightings->point_light.position;

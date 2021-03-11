@@ -38,7 +38,7 @@ void main()
         final += CalcPointLight(plight_pos, plight_amb, plight_dif, plight_spc, normHat, FragPos, viewDir);
     }   
     
-    final *= object_color;
+    // final *= object_color;
     FragColor = vec4(final, 1.0);
 
     // FragColor = vec4(object_color, 1.0);
