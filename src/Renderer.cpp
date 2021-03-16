@@ -473,6 +473,11 @@ void Renderer::draw_object(Shader &shader, Object &object)
     }
     glDrawArrays(our_mode, 0, object.vao_vertices.size());
     // glDrawElements(our_mode, object.vao_vertices.size(), GL_UNSIGNED_INT, 0);
+
+    // Reset back Polygon Mode to GL_FILL so as to not mess up the Nano GUI.
+    // Otherwise it just make everything in the GUI to be in lineframe mode.
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    
     glBindVertexArray(0); // unbind vao.
 }
 
