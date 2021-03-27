@@ -36,24 +36,38 @@ void main()
     vec3 normHat = normalize(Normal);
     vec3 viewDir = normalize(view_position - FragPos);
     vec3 final = vec3(0.0, 0.0, 0.0);
-    vec3 color  = texture(ourTexture, TexCoords).rgb;
-    vec3 normal = texture(normalMap, TexCoords).rgb;
-    normal = normalize(normal * 2.0 - 1.0); 
+    vec3 color  = texture(ourTexture, TexCoord).rgb;
+    vec3 normal = texture(normalMap, TexCoord).rgb;
+    normal = normalize(normal * 2.0 - 1.0); // Use this instead of normHat if normalMap.
 
     if (on_Dlight)
     {
-        final += CalcDirLight(dlight_dir, dlight_amb, dlight_dif, dlight_spc, normHat, viewDir);
+        if(on_normalMap)
+        {
+            final += CalcDirLight(dlight_dir, dlight_amb, dlight_dif, dlight_spc, normal, viewDir);
+        }
+        else
+        {
+            final += CalcDirLight(dlight_dir, dlight_amb, dlight_dif, dlight_spc, normHat, viewDir);
+        }       
+        
     }
+
     if(on_Plight)
-    {
-        final += CalcPointLight(plight_pos, plight_amb, plight_dif, plight_spc, normHat, FragPos, viewDir);
+    {   
+        if(on_normalMap)
+        {
+            final += CalcPointLight(plight_pos, plight_amb, plight_dif, plight_spc, normal, FragPos, viewDir);
+        }
+        else
+        {
+            final += CalcPointLight(plight_pos, plight_amb, plight_dif, plight_spc, normHat, FragPos, viewDir);
+        }
     }
     
     if(on_diffuseMap){
         final *= color;    
     }
-
-    if(on_normalMap);
     
     FragColor = vec4(final, 1.0);
 
