@@ -6,7 +6,7 @@ nanogui::Screen *Renderer::m_nanogui_screen = nullptr;
 
 Lighting *Renderer::m_lightings = new Lighting();
 
-glm::vec3 CCS_lightDir = glm::vec3(0.0f, 1.0f, 1.0f);
+glm::vec3 CCS_lightDir = glm::vec3(0.0f, -1.0f, -1.0f);
 
 /*
  * TODO: Deprecate these
@@ -78,7 +78,7 @@ bool n_rotate_ydown = false;
 bool n_rotate_zdown = false;
 
 render_type nano_enum_render = TRIANGLE;
-culling_type nano_enum_cull = CW;
+culling_type nano_enum_cull = CCW;
 
 // good init for 1st run and to ensure Renderer::is_scene_reset starts with a true
 bool nano_reload_model = true;
@@ -136,7 +136,7 @@ void Renderer::init()
     m_camera->init();
 
     this->m_window =
-        glfwCreateWindow(m_camera->width, m_camera->height, "CS6366:Hw01Ninad", nullptr, nullptr);
+        glfwCreateWindow(m_camera->width, m_camera->height, "CS6366:Hw03Ninad", nullptr, nullptr);
     glfwMakeContextCurrent(this->m_window);
 
     glewExperimental = GL_TRUE;
@@ -298,8 +298,7 @@ void Renderer::nanogui_init(GLFWwindow *window)
 }
 
 void Renderer::display(GLFWwindow *window)
-{
-    // Shader m_shader = Shader("../src/shader/basic.vert", "../src/shader/basic.frag");
+{    
     Shader m_shader = Shader("../src/shader/light_texture.vert", "../src/shader/light_texture.frag");
 
     // Main frame while loop
@@ -324,8 +323,6 @@ void Renderer::display(GLFWwindow *window)
         }
 
         camera_move();
-
-        glBindTexture(GL_TEXTURE_2D, cur_obj_ptr->texture);
 
         m_shader.use();
 
@@ -408,21 +405,24 @@ void Renderer::load_models()
 
     // Textures
     std::string texture_path = "../src/textures/";
+    std::string _suffix = "_diffuse.png";
     std::string texture_file;
     if(nano_model_name == "cyborg.obj")
     {
-        texture_file = texture_path + "cyborg_diffuse.png";
+        texture_file = texture_path + "cyborg" + _suffix;
+        // texture_file = texture_path + "cube_diffuse.png";
     }
     else if(nano_model_name == "cube.obj" || nano_model_name == "two_cubes.obj")
     {
-        texture_file = texture_path + "cube_diffuse.png";
+        //texture_file = texture_path + "cyborg" + _suffix;
+        texture_file = texture_path + "cube" + _suffix;
     }
 
 
     glGenTextures(1, &cur_obj_ptr->texture);
     glBindTexture(GL_TEXTURE_2D, cur_obj_ptr->texture);
     // set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     // set texture filtering parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -431,10 +431,20 @@ void Renderer::load_models()
     int width, height, nrChannels;
     std::cout << "[DebugLog] Texture File: " << texture_file << std::endl;
     unsigned char *imgdata = stbi_load(texture_file.c_str(), &width, &height, &nrChannels, 0);
+    std::cout << "[DebugLog] Number of channels:" << nrChannels << std::endl;
     if (imgdata)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgdata);
+    {   
+        if(nrChannels == 3)
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, imgdata);
+        }
+        else if(nrChannels == 4)
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgdata);
+        }        
         glGenerateMipmap(GL_TEXTURE_2D);
+        std::cout << "[DebugLog] glTexImg2D loaded successfully" << std::endl;
+        
     }
     else
     {
@@ -493,7 +503,11 @@ void Renderer::draw_object(Shader &shader, Object &object)
     /*
      * TODO: Draw object
      */
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, cur_obj_ptr->texture);
+
     glBindVertexArray(object.vao);
+    
     GLenum our_mode;
     if (nano_enum_render == LINE)
     {
@@ -626,6 +640,12 @@ void Renderer::setup_uniform_values(Shader &shader)
     glUniform3fv(pLightAmbLoc, 1, glm::value_ptr(m_lightings->point_light.ambient));
     glUniform3fv(pLightDifLoc, 1, glm::value_ptr(m_lightings->point_light.diffuse));
     glUniform3fv(pLightSpcLoc, 1, glm::value_ptr(m_lightings->point_light.specular));
+
+
+    // Textures
+
+    unsigned int ourTextureLoc = glGetUniformLocation(shader.program, "ourTexture");
+    glUniform1i(ourTextureLoc, 0);
 }
 
 void Renderer::camera_move()

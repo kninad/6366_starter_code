@@ -41,7 +41,7 @@ void main()
     {
         final += CalcPointLight(plight_pos, plight_amb, plight_dif, plight_spc, normHat, FragPos, viewDir);
     }   
-    
+    final *= vec3(texture(ourTexture, TexCoord).rgb);    
     FragColor = vec4(final, 1.0);
 
 
@@ -62,7 +62,7 @@ vec3 CalcDirLight(vec3 direction, vec3 ambient, vec3 diffuse, vec3 specular, vec
     vec3 _ambient = ambient;
     vec3 _diffuse = diffuse * diff;
     vec3 _specular = specular * spec;
-    return (_ambient + _diffuse + _specular) * vec3(texture(ourTexture, TexCoord));
+    return (_ambient + _diffuse + _specular);
 }
 
 // Point light.
@@ -80,5 +80,5 @@ vec3 CalcPointLight(vec3 position, vec3 ambient, vec3 diffuse, vec3 specular, ve
     vec3 _ambient = ambient;
     vec3 _diffuse = diffuse * diff;
     vec3 _specular = specular * spec;
-    return (_ambient + _diffuse + _specular) * vec3(texture(ourTexture, TexCoord));
+    return (_ambient + _diffuse + _specular);
 }
