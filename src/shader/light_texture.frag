@@ -8,6 +8,9 @@ in vec2 TexCoord;
 
 
 uniform sampler2D ourTexture;
+uniform sampler2D normalMap;
+uniform bool on_diffuseMap;
+uniform bool on_normalMap;
 
 uniform vec3 object_color;
 uniform vec3 view_position;
@@ -33,6 +36,10 @@ void main()
     vec3 normHat = normalize(Normal);
     vec3 viewDir = normalize(view_position - FragPos);
     vec3 final = vec3(0.0, 0.0, 0.0);
+    vec3 color  = texture(ourTexture, TexCoords).rgb;
+    vec3 normal = texture(normalMap, TexCoords).rgb;
+    normal = normalize(normal * 2.0 - 1.0); 
+
     if (on_Dlight)
     {
         final += CalcDirLight(dlight_dir, dlight_amb, dlight_dif, dlight_spc, normHat, viewDir);
@@ -40,8 +47,14 @@ void main()
     if(on_Plight)
     {
         final += CalcPointLight(plight_pos, plight_amb, plight_dif, plight_spc, normHat, FragPos, viewDir);
-    }   
-    final *= vec3(texture(ourTexture, TexCoord).rgb);    
+    }
+    
+    if(on_diffuseMap){
+        final *= color;    
+    }
+
+    if(on_normalMap);
+    
     FragColor = vec4(final, 1.0);
 
 

@@ -102,6 +102,9 @@ nanogui::Color n_posL_amb(0.05f, 0.05f, 0.05f, 1.0f);
 nanogui::Color n_posL_dif(0.05f, 0.05f, 0.05f, 1.0f);
 nanogui::Color n_posL_spc(0.05f, 0.05f, 0.05f, 1.0f);
 
+bool n_on_diffuseTex = false;
+bool n_on_normalTex = false;
+
 /*
  * TODO: Remeber to use these variables
  */
@@ -199,6 +202,11 @@ void Renderer::nanogui_init(GLFWwindow *window)
     gui_2->addVariable("Point Light Rot Z", n_pLight_rotZ);
 
     gui_2->addButton("Reset Point Light", []() { n_pLight_reset = true; });
+
+    // Textures
+    gui_2->addVariable("Diffuse Texture Status", n_on_diffuseTex);
+
+    gui_2->addVariable("Normal Map Status", n_on_normalTex);
 
     // ********************************************************************
 
@@ -324,6 +332,13 @@ void Renderer::display(GLFWwindow *window)
 
         camera_move();
 
+        // Textures
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, cur_obj_ptr->diffuse_textureID);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, cur_obj_ptr->normal_textureID);
+
+
         m_shader.use();
 
         // std::cout << "\n[DebugLog] Setting up uniform values\n";
@@ -405,57 +420,24 @@ void Renderer::load_models()
 
     // Textures
     std::string texture_path = "../src/textures/";
-    std::string _suffix = "_diffuse.png";
     std::string texture_file;
     if(nano_model_name == "cyborg.obj")
     {
-        texture_file = texture_path + "cyborg" + _suffix;
-        // texture_file = texture_path + "cube_diffuse.png";
+        texture_file = texture_path + "cyborg";
     }
     else if(nano_model_name == "cube.obj" || nano_model_name == "two_cubes.obj")
     {
-        //texture_file = texture_path + "cyborg" + _suffix;
-        texture_file = texture_path + "cube" + _suffix;
+        texture_file = texture_path + "cube";
     }
+    std::string _diffuse_file = texture_file + "_diffuse.png";
+    std::string _normal_file  = texture_file + "_normal.png";
 
-
-    glGenTextures(1, &cur_obj_ptr->texture);
-    glBindTexture(GL_TEXTURE_2D, cur_obj_ptr->texture);
-    // set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
-    int width, height, nrChannels;
-    std::cout << "[DebugLog] Texture File: " << texture_file << std::endl;
-    unsigned char *imgdata = stbi_load(texture_file.c_str(), &width, &height, &nrChannels, 0);
-    std::cout << "[DebugLog] Number of channels:" << nrChannels << std::endl;
-    if (imgdata)
-    {   
-        if(nrChannels == 3)
-        {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, imgdata);
-        }
-        else if(nrChannels == 4)
-        {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgdata);
-        }        
-        glGenerateMipmap(GL_TEXTURE_2D);
-        std::cout << "[DebugLog] glTexImg2D loaded successfully" << std::endl;
-        
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(imgdata);
-
+    cur_obj_ptr->diffuse_textureID = cur_obj_ptr->loadTexture(_diffuse_file.c_str());
+    cur_obj_ptr->normal_textureID  = cur_obj_ptr->loadTexture(_normal_file.c_str());
 
 
     /*
-     * TODO: You can also set Camera parameters here
+     * TODO: Set Camera parameters here
      */
     m_camera->model_center_position = cur_obj_ptr->center_cam_pos;
     // Sane default for camera position options in nano gui
@@ -503,8 +485,6 @@ void Renderer::draw_object(Shader &shader, Object &object)
     /*
      * TODO: Draw object
      */
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, cur_obj_ptr->texture);
 
     glBindVertexArray(object.vao);
     
@@ -645,7 +625,14 @@ void Renderer::setup_uniform_values(Shader &shader)
     // Textures
 
     unsigned int ourTextureLoc = glGetUniformLocation(shader.program, "ourTexture");
-    glUniform1i(ourTextureLoc, 0);
+    unsigned int normalMapLoc = glGetUniformLocation(shader.program, "normalMap");
+    glUniform1i(ourTextureLoc,0);
+    glUniform1i(normalMapLoc, 1);
+
+    unsigned int on_diffuseMapLoc = glGetUniformLocation(shader.program, "on_diffuseMap");
+    unsigned int on_normalMapLoc  = glGetUniformLocation(shader.program, "on_normalMap");
+    glUniform1i(on_diffuseMapLoc, n_on_diffuseTex);
+    glUniform1i(on_normalMapLoc, n_on_normalTex);
 }
 
 void Renderer::camera_move()
