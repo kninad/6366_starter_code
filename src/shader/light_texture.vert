@@ -17,13 +17,13 @@ uniform mat4 projection;
 
 void main()
 {
-    // vec3 T = normalize(vec3(model * vec4(aTangent,   0.0)));
-    // vec3 B = normalize(vec3(model * vec4(aBitangent, 0.0)));
-    // vec3 N = normalize(vec3(model * vec4(aNormal,    0.0)));    
+    // vec3 T = normalize(vec3(model_mat * vec4(tangent,   0.0)));
+    // vec3 B = normalize(vec3(model_mat * vec4(bitangent, 0.0)));
+    // vec3 N = normalize(vec3(model_mat * vec4(normal,    0.0)));    
     // mat3 TBN = mat3(T, B, N);
 
-    vec3 T = normalize(vec3(model * vec4(aTangent, 0.0)));
-    vec3 N = normalize(vec3(model * vec4(aNormal, 0.0)));    
+    vec3 T = normalize(vec3(model_mat * vec4(tangent, 0.0)));
+    vec3 N = normalize(vec3(model_mat * vec4(normal, 0.0)));    
     T = normalize(T - dot(T, N) * N); // re-orthogonalize T with respect to N    
     vec3 B = cross(N, T); // orthogonal vector B = cross product of T and N
     mat3 TBN = mat3(T, B, N);

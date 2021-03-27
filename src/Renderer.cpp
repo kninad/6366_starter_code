@@ -6,7 +6,7 @@ nanogui::Screen *Renderer::m_nanogui_screen = nullptr;
 
 Lighting *Renderer::m_lightings = new Lighting();
 
-glm::vec3 CCS_lightDir = glm::vec3(0.0f, -1.0f, -1.0f);
+glm::vec3 CCS_lightDir = glm::vec3(0.0f, 1.0f, 1.0f);
 
 /*
  * TODO: Deprecate these
