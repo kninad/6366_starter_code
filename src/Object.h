@@ -22,6 +22,10 @@ class Object
         glm::vec3 Normal;
         // TexCoords
         glm::vec2 TexCoords;
+        // Tangent
+        glm::vec3 Tangent;
+        // BiTangent
+        glm::vec3 Bitangent;
     };
 
     struct Vertex_Index
@@ -65,6 +69,7 @@ class Object
     GLuint diffuse_textureID, normal_textureID;
 
    private:
+
     void add_vertex_from_face(const Face_Index& face)
     {
         for (int i = 0; i < 3; i++)
@@ -77,6 +82,7 @@ class Object
             vao_vertices.push_back(tmp);
         }
     }
+
 
     void update_bounds(const glm::vec3& point)
     {
@@ -107,6 +113,7 @@ class Object
         if (point[2] > max_bound[2]) max_bound[2] = point[2];
         if (point[2] < min_bound[2]) min_bound[2] = point[2];
      }
+
 
    public:
 
@@ -154,7 +161,9 @@ class Object
         load_obj(this->m_obj_path);
     };
 
+
     ~Object(){};
+
 
     void print_glmvec3(const glm::vec3 vec)
     {
@@ -180,6 +189,7 @@ class Object
         std::cout << "\n[Debug:Log] z_x, z_y:" << z_x << " " << z_y;
         center_cam_pos[2] = glm::max(z_x, z_y) + max_bound[2];
     }
+
 
     void load_obj(std::string obj_path)
     {
@@ -278,4 +288,5 @@ class Object
             std::cout << std::endl;
         }
     };
+
 };

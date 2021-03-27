@@ -435,7 +435,6 @@ void Renderer::load_models()
     cur_obj_ptr->diffuse_textureID = cur_obj_ptr->loadTexture(_diffuse_file.c_str());
     cur_obj_ptr->normal_textureID  = cur_obj_ptr->loadTexture(_normal_file.c_str());
 
-
     /*
      * TODO: Set Camera parameters here
      */
