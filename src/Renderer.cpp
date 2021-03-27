@@ -59,7 +59,7 @@ enum depth_type
 
 // Global Vars for Nano GUI
 nanogui::Color nano_col_val(0.10f, 0.4f, 0.8f, 1.0f);
-std::string nano_model_name = "rock.obj"; // Deafault to Rock
+std::string nano_model_name = "cube.obj"; // Deafault to Rock
 
 float nano_campos_x = 0.0f;
 float nano_campos_y = 0.0f;
@@ -300,7 +300,7 @@ void Renderer::nanogui_init(GLFWwindow *window)
 void Renderer::display(GLFWwindow *window)
 {
     // Shader m_shader = Shader("../src/shader/basic.vert", "../src/shader/basic.frag");
-    Shader m_shader = Shader("../src/shader/light.vert", "../src/shader/light.frag");
+    Shader m_shader = Shader("../src/shader/light_texture.vert", "../src/shader/light_texture.frag");
 
     // Main frame while loop
     while (!glfwWindowShouldClose(window))
@@ -407,13 +407,13 @@ void Renderer::load_models()
 
 
     // Textures
-    std::string texture_path = "../textures/";
+    std::string texture_path = "../src/textures/";
     std::string texture_file;
     if(nano_model_name == "cyborg.obj")
     {
         texture_file = texture_path + "cyborg_diffuse.png";
     }
-    else if(nano_model_name == "rock.obj")
+    else if(nano_model_name == "cube.obj" || nano_model_name == "two_cubes.obj")
     {
         texture_file = texture_path + "cube_diffuse.png";
     }
@@ -429,10 +429,11 @@ void Renderer::load_models()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     
     int width, height, nrChannels;
+    std::cout << "[DebugLog] Texture File: " << texture_file << std::endl;
     unsigned char *imgdata = stbi_load(texture_file.c_str(), &width, &height, &nrChannels, 0);
     if (imgdata)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, imgdata);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgdata);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
