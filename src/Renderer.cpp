@@ -8,30 +8,6 @@ Lighting *Renderer::m_lightings = new Lighting();
 
 glm::vec3 CCS_lightDir = glm::vec3(0.0f, 1.0f, 1.0f);
 
-/*
- * TODO: Deprecate these
- * 		and use Object::vao and Object::vbo instead for your loaded model
- */
-// GLuint VBO, VAO;
-
-/*
- * TODO: Deprecate these
- * 		and create global variables for your GUI
- */
-// enum test_enum
-// {
-//     Item1 = 0,
-//     Item2,
-//     Item3
-// };
-// bool bvar = true;
-// int ivar = 12345678;
-// double dvar = 3.1415926;
-// float fvar = (float)dvar;
-// std::string strval = "A string";
-// test_enum enumval = Item2;
-// nanogui::Color col_val(1.0f, 1.0f, 1.0f, 1.0f);
-
 // Pre-defined
 bool Renderer::keys[1024];
 
@@ -85,7 +61,6 @@ bool nano_reload_model = true;
 bool nano_reset = false;
 
 // Second Nano GUI Global Vars (Lighting)
-
 bool n_pLight_reset = false; // Reset dynamic point light?
 
 bool n_pLight_rotX = false;
@@ -165,40 +140,40 @@ void Renderer::nanogui_init(GLFWwindow *window)
     // 2nd nanogui GUI
     nanogui::FormHelper *gui_2 = new nanogui::FormHelper(m_nanogui_screen);
     nanogui::ref<nanogui::Window> nanoguiWindow2 =
-        gui_2->addWindow(Eigen::Vector2i(10, 10), "Nanogui control bar2: Lights");  
-    
+        gui_2->addWindow(Eigen::Vector2i(10, 10), "Nanogui control bar2: Lights");
+
     gui_2->addVariable("Direction Light Status", n_on_dirL);
 
     gui_2->addVariable("DirL Ambient Color", n_dirL_amb)->setFinalCallback([](const nanogui::Color &c) {
         std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
-        n_dirL_amb = c;     });
+        n_dirL_amb = c; });
 
     gui_2->addVariable("DirL Diffuse Color", n_dirL_dif)->setFinalCallback([](const nanogui::Color &c) {
         std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
-        n_dirL_dif = c;    });
+        n_dirL_dif = c; });
 
     gui_2->addVariable("DirL Specular Color", n_dirL_spc)->setFinalCallback([](const nanogui::Color &c) {
         std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
-        n_dirL_spc = c;    });
+        n_dirL_spc = c; });
 
     gui_2->addVariable("Point Light Status", n_on_posL);
-    
+
     gui_2->addVariable("PosL Ambient Color", n_posL_amb)->setFinalCallback([](const nanogui::Color &c) {
         std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
-        n_posL_amb = c; });    
+        n_posL_amb = c; });
 
     gui_2->addVariable("PosL Diffuse Color", n_posL_dif)->setFinalCallback([](const nanogui::Color &c) {
         std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
-        n_posL_dif = c;    });    
+        n_posL_dif = c; });
 
     gui_2->addVariable("PosL Specular Color", n_posL_spc)->setFinalCallback([](const nanogui::Color &c) {
         std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
-        n_posL_spc = c;    });    
+        n_posL_spc = c; });
 
     gui_2->addVariable("Point Light Rot X", n_pLight_rotX);
 
     gui_2->addVariable("Point Light Rot Y", n_pLight_rotY);
-    
+
     gui_2->addVariable("Point Light Rot Z", n_pLight_rotZ);
 
     gui_2->addButton("Reset Point Light", []() { n_pLight_reset = true; });
@@ -306,7 +281,7 @@ void Renderer::nanogui_init(GLFWwindow *window)
 }
 
 void Renderer::display(GLFWwindow *window)
-{    
+{
     Shader m_shader = Shader("../src/shader/light_texture.vert", "../src/shader/light_texture.frag");
 
     // Main frame while loop
@@ -338,7 +313,6 @@ void Renderer::display(GLFWwindow *window)
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, cur_obj_ptr->normal_textureID);
 
-
         m_shader.use();
 
         // std::cout << "\n[DebugLog] Setting up uniform values\n";
@@ -366,9 +340,7 @@ void Renderer::load_models()
 {
     /*
      * TODO: Create Object class and bind VAO & VBO.
-     * Here we just use show simple triangle
-     * DONE?
-     */
+    */
 
     if (cur_obj_ptr)
     {
@@ -392,7 +364,7 @@ void Renderer::load_models()
     // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute
     // pointer(s).
     glBindVertexArray(cur_obj_ptr->vao); // model.vao);
-    
+
     glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo); // model.vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Object::Vertex) * cur_obj_ptr->vao_vertices.size(),
                  &(cur_obj_ptr->vao_vertices[0]), GL_STATIC_DRAW);
@@ -416,30 +388,30 @@ void Renderer::load_models()
     // Tangent attribute
     glEnableVertexAttribArray(3);
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid *)(8 * sizeof(float)));
-    
+
     // Bitangent attribute
     glEnableVertexAttribArray(4);
     glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid *)(11 * sizeof(float)));
 
     glBindVertexArray(0); // Unbind VAO
 
-
-    // Textures
+    
+    // Texture Loading
+    
     std::string texture_path = "../src/textures/";
     std::string texture_file;
-    if(nano_model_name == "cyborg.obj")
+    if (nano_model_name == "cyborg.obj")
     {
         texture_file = texture_path + "cyborg";
     }
-    else if(nano_model_name == "cube.obj" || nano_model_name == "two_cubes.obj")
+    else if (nano_model_name == "cube.obj" || nano_model_name == "two_cubes.obj")
     {
         texture_file = texture_path + "cube";
     }
     std::string _diffuse_file = texture_file + "_diffuse.png";
-    std::string _normal_file  = texture_file + "_normal.png";
-
+    std::string _normal_file = texture_file + "_normal.png";
     cur_obj_ptr->diffuse_textureID = cur_obj_ptr->loadTexture(_diffuse_file.c_str());
-    cur_obj_ptr->normal_textureID  = cur_obj_ptr->loadTexture(_normal_file.c_str());
+    cur_obj_ptr->normal_textureID = cur_obj_ptr->loadTexture(_normal_file.c_str());
 
     /*
      * TODO: Set Camera parameters here
@@ -492,7 +464,7 @@ void Renderer::draw_object(Shader &shader, Object &object)
      */
 
     glBindVertexArray(object.vao);
-    
+
     GLenum our_mode;
     if (nano_enum_render == LINE)
     {
@@ -516,7 +488,7 @@ void Renderer::draw_object(Shader &shader, Object &object)
     // Reset back Polygon Mode to GL_FILL so as to not mess up the Nano GUI.
     // Otherwise it just make everything in the GUI to be in lineframe mode.
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    
+
     glBindVertexArray(0); // unbind vao.
 }
 
@@ -539,8 +511,7 @@ void Renderer::setup_uniform_values(Shader &shader)
     projection = glm::perspective(glm::radians(m_camera->zoom), aspect_ratio, nano_znear, nano_zfar);
 
     // glm::vec3 custom_color = glm::vec3(nano_col_val[0], nano_col_val[1], nano_col_val[2]);
-    glm::vec3 custom_color = glm::vec3(1.0f,1.0f,1.0f);
-    
+    glm::vec3 custom_color = glm::vec3(1.0f, 1.0f, 1.0f);
 
     // Set the values of Lightings object from Nanogui Controls
     m_lightings->direction_light.direction = glm::vec3(glm::inverse(view) * glm::vec4(CCS_lightDir, 0.0f));
@@ -556,31 +527,38 @@ void Renderer::setup_uniform_values(Shader &shader)
 
     // Rotation of Point Light
     glm::vec3 pointL_pos = m_lightings->point_light.position;
-    float theta = (float) glfwGetTime();
+    float theta = (float)glfwGetTime();
     float sin_theta = glm::sin(theta);
     float cos_theta = glm::cos(theta);
-    if(n_pLight_rotX) {
+    if (n_pLight_rotX)
+    {
         float y = pointL_pos[1];
         float z = pointL_pos[2];
-        float mag = glm::sqrt(y*y + z*z);
+        float mag = glm::sqrt(y * y + z * z);
         pointL_pos[1] = mag * cos_theta;
         pointL_pos[2] = mag * sin_theta;
         m_lightings->point_light.position = pointL_pos;
-    } else if(n_pLight_rotY) {
+    }
+    else if (n_pLight_rotY)
+    {
         float x = pointL_pos[1];
         float z = pointL_pos[2];
-        float mag = glm::sqrt(x*x + z*z);
+        float mag = glm::sqrt(x * x + z * z);
         pointL_pos[0] = mag * cos_theta;
         pointL_pos[2] = mag * sin_theta;
         m_lightings->point_light.position = pointL_pos;
-    } else if(n_pLight_rotZ) {
+    }
+    else if (n_pLight_rotZ)
+    {
         float x = pointL_pos[0];
         float y = pointL_pos[1];
-        float mag = glm::sqrt(y*y + x*x);
+        float mag = glm::sqrt(y * y + x * x);
         pointL_pos[0] = mag * cos_theta;
         pointL_pos[1] = mag * sin_theta;
         m_lightings->point_light.position = pointL_pos;
-    } else if(n_pLight_reset) {
+    }
+    else if (n_pLight_reset)
+    {
         m_lightings->point_light.position = m_lightings->get_reset_pos();
         n_pLight_reset = false; // reset the value back to sane default.
     }
@@ -626,16 +604,16 @@ void Renderer::setup_uniform_values(Shader &shader)
     glUniform3fv(pLightDifLoc, 1, glm::value_ptr(m_lightings->point_light.diffuse));
     glUniform3fv(pLightSpcLoc, 1, glm::value_ptr(m_lightings->point_light.specular));
 
-
-    // Textures
+    // Textures: ourTexture corresponds to the diffuse texture.
 
     unsigned int ourTextureLoc = glGetUniformLocation(shader.program, "ourTexture");
     unsigned int normalMapLoc = glGetUniformLocation(shader.program, "normalMap");
-    glUniform1i(ourTextureLoc,0);
+    glUniform1i(ourTextureLoc, 0);
     glUniform1i(normalMapLoc, 1);
 
+    // Textures On / Off nano gui uniforms
     unsigned int on_diffuseMapLoc = glGetUniformLocation(shader.program, "on_diffuseMap");
-    unsigned int on_normalMapLoc  = glGetUniformLocation(shader.program, "on_normalMap");
+    unsigned int on_normalMapLoc = glGetUniformLocation(shader.program, "on_normalMap");
     glUniform1i(on_diffuseMapLoc, n_on_diffuseTex);
     glUniform1i(on_normalMapLoc, n_on_normalTex);
 }

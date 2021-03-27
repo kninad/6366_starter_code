@@ -13,7 +13,7 @@
 
 class Object
 {
-   public:
+public:
     struct Vertex
     {
         // Position
@@ -52,12 +52,12 @@ class Object
     // obj face index vector
     std::vector<Face_Index> indexed_faces;
 
-    glm::vec2 z_max = glm::vec2(0.0f,0.0f); // z coord for the vertices having max x and y values.
-    glm::vec2 z_min = glm::vec2(0.0f,0.0f); // z coord for the vertices having min x and y values.
-    glm::vec3 obj_center = glm::vec3(0.0f,0.0f,0.0f); // UNUSED!
+    glm::vec2 z_max = glm::vec2(0.0f, 0.0f);            // z coord for the vertices having max x and y values.
+    glm::vec2 z_min = glm::vec2(0.0f, 0.0f);            // z coord for the vertices having min x and y values.
+    glm::vec3 obj_center = glm::vec3(0.0f, 0.0f, 0.0f); // UNUSED!
     glm::vec3 max_bound = glm::vec3(INT_MIN);
     glm::vec3 min_bound = glm::vec3(INT_MAX);
-    glm::vec3 center_cam_pos = glm::vec3(0.0f,0.0f,0.0f);
+    glm::vec3 center_cam_pos = glm::vec3(0.0f, 0.0f, 0.0f);
 
     glm::vec4 obj_color = glm::vec4(0.7, 0.7, 0.7, 1.0);
     GLfloat shininess = 32.0f;
@@ -68,11 +68,10 @@ class Object
     GLuint vao, vbo, ebo;
     GLuint diffuse_textureID, normal_textureID;
 
-   private:
-
-    void add_vertex_from_face(const Face_Index& face)
-    {   
-        Vertex points[3]; 
+private:
+    void add_vertex_from_face(const Face_Index &face)
+    {
+        Vertex points[3];
         glm::vec3 tangent, bitangent;
         // Populate the position, normal and texture information but not the T and B info.
         for (int i = 0; i < 3; i++)
@@ -97,9 +96,9 @@ class Object
         bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
         bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
         bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-        
+
         // Set the same T and B for all 3 points in face and push to vao_vertices.
-        for(int i = 0; i < 3; i++)
+        for (int i = 0; i < 3; i++)
         {
             points[i].Tangent = tangent;
             points[i].Bitangent = bitangent;
@@ -107,8 +106,7 @@ class Object
         }
     }
 
-
-    void update_bounds(const glm::vec3& point)
+    void update_bounds(const glm::vec3 &point)
     {
         // X coordinates
         if (point[0] > max_bound[0])
@@ -134,14 +132,14 @@ class Object
             z_min[1] = point[2];
         }
         // Z coordinates
-        if (point[2] > max_bound[2]) max_bound[2] = point[2];
-        if (point[2] < min_bound[2]) min_bound[2] = point[2];
-     }
+        if (point[2] > max_bound[2])
+            max_bound[2] = point[2];
+        if (point[2] < min_bound[2])
+            min_bound[2] = point[2];
+    }
 
-
-   public:
-
-    unsigned int loadTexture(char const * path)
+public:
+    unsigned int loadTexture(char const *path)
     {
         unsigned int textureID;
         glGenTextures(1, &textureID);
@@ -162,7 +160,7 @@ class Object
             glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
             glGenerateMipmap(GL_TEXTURE_2D);
 
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); // for this tutorial: use GL_CLAMP_TO_EDGE to prevent semi-transparent borders. Due to interpolation it takes texels from next repeat 
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); // for this tutorial: use GL_CLAMP_TO_EDGE to prevent semi-transparent borders. Due to interpolation it takes texels from next repeat
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -178,34 +176,30 @@ class Object
         return textureID;
     }
 
-
     Object(std::string obj_path)
     {
         this->m_obj_path = obj_path;
         load_obj(this->m_obj_path);
     };
 
-
     ~Object(){};
-
 
     void print_glmvec3(const glm::vec3 vec)
     {
         std::cout << "\nVec3: ";
-        for(int i=0; i<3; i++)
+        for (int i = 0; i < 3; i++)
         {
             std::cout << vec[i] << " ";
         }
         std::cout << std::endl;
     }
 
-
     void update_center_camera_position(float fov = 45.0f)
     {
         center_cam_pos[0] = (max_bound[0] + min_bound[0]) / 2.0f; // X center
         center_cam_pos[1] = (max_bound[1] + min_bound[1]) / 2.0f; // Y center
         // Z coord -- Trignometry skills
-        float tan_fov_by2 = (float) glm::tan(glm::radians(fov) / 2);
+        float tan_fov_by2 = (float)glm::tan(glm::radians(fov) / 2);
         float x_range = max_bound[0] - min_bound[0];
         float y_range = max_bound[1] - min_bound[1];
         float z_x = (x_range / (2 * tan_fov_by2)); // + glm::max(z_max[0], z_min[0]);
@@ -213,7 +207,6 @@ class Object
         std::cout << "\n[Debug:Log] z_x, z_y:" << z_x << " " << z_y;
         center_cam_pos[2] = glm::max(z_x, z_y) + max_bound[2];
     }
-
 
     void load_obj(std::string obj_path)
     {
@@ -285,7 +278,7 @@ class Object
                     }
                 }
             }
-            catch (const std::exception&)
+            catch (const std::exception &)
             {
                 std::cout << "Error: Obj file cannot be read\n";
             }
@@ -303,7 +296,7 @@ class Object
                 veo_indices.push_back(3 * i + 2);
             }
 
-            update_center_camera_position(); // use default fov of 45
+            update_center_camera_position();           // use default fov of 45
             std::cout << "\n\n [DebugLog] Cent Pos: "; // center_cam_pos[0] << " " << center_cam_pos[1] << " " << center_cam_pos[2];
             print_glmvec3(center_cam_pos);
             print_glmvec3(max_bound);
@@ -312,5 +305,4 @@ class Object
             std::cout << std::endl;
         }
     };
-
 };

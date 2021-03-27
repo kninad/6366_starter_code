@@ -40,7 +40,7 @@ void main()
     vec3 nm_normal = texture(normalMap, TexCoord).rgb;
     nm_normal = nm_normal * 2.0 - 1.0; // Use this instead of normHat if normalMap.
     nm_normal = normalize(nm_normal);
-    //nm_normal = normalize(TBN * nm_normal);
+    // nm_normal = normalize(TBN * nm_normal);
 
     if (on_Dlight)
     {
