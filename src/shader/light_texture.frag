@@ -39,7 +39,8 @@ void main()
     vec3 color  = texture(ourTexture, TexCoord).rgb;
     vec3 nm_normal = texture(normalMap, TexCoord).rgb;
     nm_normal = nm_normal * 2.0 - 1.0; // Use this instead of normHat if normalMap.
-    nm_normal = normalize(TBN * nm_normal);
+    nm_normal = normalize(nm_normal);
+    //nm_normal = normalize(TBN * nm_normal);
 
     if (on_Dlight)
     {
@@ -66,13 +67,12 @@ void main()
         }
     }
     
-    if(on_diffuseMap){
+    if(on_diffuseMap)
+    {
         final *= color;    
     }
     
     FragColor = vec4(final, 1.0);
-
-
 }
 
 // Directional light.
