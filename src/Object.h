@@ -22,9 +22,9 @@ class Object
         glm::vec3 Normal;
         // TexCoords
         glm::vec2 TexCoords;
-        // Tangent
+        // Tangent T
         glm::vec3 Tangent;
-        // BiTangent
+        // BiTangent B
         glm::vec3 Bitangent;
     };
 
@@ -71,7 +71,10 @@ class Object
    private:
 
     void add_vertex_from_face(const Face_Index& face)
-    {
+    {   
+        Vertex points[3]; 
+        glm::vec3 tangent, bitangent;
+        // Populate the position, normal and texture information but not the T and B info.
         for (int i = 0; i < 3; i++)
         {
             Vertex_Index v = face.vertex[i];
@@ -79,7 +82,30 @@ class Object
             tmp.Position = ori_positions[v.pos_idx];
             tmp.Normal = ori_normals[v.normal_idx];
             tmp.TexCoords = ori_texcoords[v.texcoord_idx];
-            vao_vertices.push_back(tmp);
+            points[i] = tmp;
+        }
+
+        glm::vec3 edge1 = points[1].Position - points[0].Position;
+        glm::vec3 edge2 = points[2].Position - points[0].Position;
+        glm::vec2 deltaUV1 = points[1].TexCoords - points[0].TexCoords;
+        glm::vec2 deltaUV2 = points[2].TexCoords - points[0].TexCoords;
+
+        float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+        tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+        tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+        tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+        bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+        bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+        bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+        
+        // Set the same T and B for all 3 points in face and push to vao_vertices.
+        for(int i = 0; i < 3; i++)
+        {
+            points[i].Tangent = tangent;
+            points[i].Bitangent = bitangent;
+            vao_vertices.push_back(points[i]);
         }
     }
 
