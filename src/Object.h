@@ -62,6 +62,7 @@ class Object
     std::string obj_name;
 
     GLuint vao, vbo, ebo;
+    GLuint texture;
 
    private:
     void add_vertex_from_face(const Face_Index& face)

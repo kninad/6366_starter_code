@@ -325,6 +325,8 @@ void Renderer::display(GLFWwindow *window)
 
         camera_move();
 
+        glBindTexture(GL_TEXTURE_2D, cur_obj_ptr->texture);
+
         m_shader.use();
 
         // std::cout << "\n[DebugLog] Setting up uniform values\n";
@@ -378,8 +380,7 @@ void Renderer::load_models()
     // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute
     // pointer(s).
     glBindVertexArray(cur_obj_ptr->vao); // model.vao);
-    // and then a bit of how the cube code works?
-
+    
     glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo); // model.vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Object::Vertex) * cur_obj_ptr->vao_vertices.size(),
                  &(cur_obj_ptr->vao_vertices[0]), GL_STATIC_DRAW);
@@ -391,10 +392,12 @@ void Renderer::load_models()
     // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid *)0);
     glEnableVertexAttribArray(0);
+
     // Normal attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat),
                           (GLvoid *)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
+
     // Texture attribute
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat),
                           (GLvoid *)(6 * sizeof(GLfloat)));
@@ -402,7 +405,43 @@ void Renderer::load_models()
 
     glBindVertexArray(0); // Unbind VAO
 
-    // obj_list.push_back(model);
+
+    // Textures
+    std::string texture_path = "../textures/";
+    std::string texture_file;
+    if(nano_model_name == "cyborg.obj")
+    {
+        texture_file = texture_path + "cyborg_diffuse.png";
+    }
+    else if(nano_model_name == "rock.obj")
+    {
+        texture_file = texture_path + "cube_diffuse.png";
+    }
+
+
+    glGenTextures(1, &cur_obj_ptr->texture);
+    glBindTexture(GL_TEXTURE_2D, cur_obj_ptr->texture);
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    
+    int width, height, nrChannels;
+    unsigned char *imgdata = stbi_load(texture_file.c_str(), &width, &height, &nrChannels, 0);
+    if (imgdata)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, imgdata);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(imgdata);
+
+
 
     /*
      * TODO: You can also set Camera parameters here
