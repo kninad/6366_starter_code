@@ -5,7 +5,7 @@ out vec4 FragColor;
 in vec3 FragPos;
 in vec3 Normal;
 in vec2 TexCoord;
-
+in mat3 TBN;
 
 uniform sampler2D ourTexture;
 uniform sampler2D normalMap;
@@ -38,7 +38,8 @@ void main()
     vec3 final = vec3(0.0, 0.0, 0.0);
     vec3 color  = texture(ourTexture, TexCoord).rgb;
     vec3 nm_normal = texture(normalMap, TexCoord).rgb;
-    nm_normal = normalize(nm_normal * 2.0 - 1.0); // Use this instead of normHat if normalMap.
+    nm_normal = nm_normal * 2.0 - 1.0; // Use this instead of normHat if normalMap.
+    nm_normal = normalize(TBN * nm_normal);
 
     if (on_Dlight)
     {
