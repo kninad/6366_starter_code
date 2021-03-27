@@ -78,11 +78,9 @@ class Object
         for (int i = 0; i < 3; i++)
         {
             Vertex_Index v = face.vertex[i];
-            Vertex tmp;
-            tmp.Position = ori_positions[v.pos_idx];
-            tmp.Normal = ori_normals[v.normal_idx];
-            tmp.TexCoords = ori_texcoords[v.texcoord_idx];
-            points[i] = tmp;
+            points[i].Position = ori_positions[v.pos_idx];
+            points[i].Normal = ori_normals[v.normal_idx];
+            points[i].TexCoords = ori_texcoords[v.texcoord_idx];
         }
 
         glm::vec3 edge1 = points[1].Position - points[0].Position;
