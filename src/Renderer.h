@@ -48,7 +48,7 @@ class Renderer
      * You can also import CLI11 (https://github.com/CLIUtils/CLI11)
      * to load model from command line
      */
-    std::string model_name = "../src/objs/rock.obj"; // Default 3D object
+    
 
     GLfloat delta_time = 0.0;
     GLfloat last_frame = 0.0;

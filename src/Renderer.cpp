@@ -273,9 +273,7 @@ void Renderer::display(GLFWwindow *window)
 
         // Textures
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, cur_obj_ptr->diffuse_textureID);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, cur_obj_ptr->normal_textureID);
+        glBindTexture(GL_TEXTURE_3D, cur_obj_ptr->tex3dID);
 
         m_shader.use();
 
@@ -456,44 +454,12 @@ void Renderer::setup_uniform_values(Shader &shader)
     glUniform3fv(objcolLoc, 1, glm::value_ptr(custom_color));
     glUniform3fv(camposLoc, 1, glm::value_ptr(m_camera->position));
 
-    // // Directional Light Uniforms
-    // unsigned int onDLightLoc = glGetUniformLocation(shader.program, "on_Dlight");
-    // unsigned int dLightDirLoc = glGetUniformLocation(shader.program, "dlight_dir");
-    // unsigned int dLightAmbLoc = glGetUniformLocation(shader.program, "dlight_amb");
-    // unsigned int dLightDifLoc = glGetUniformLocation(shader.program, "dlight_dif");
-    // unsigned int dLightSpcLoc = glGetUniformLocation(shader.program, "dlight_spc");
+    // Textures
+    // unsigned int ourTextureLoc = glGetUniformLocation(shader.program, "ourTexture");
+    // unsigned int normalMapLoc = glGetUniformLocation(shader.program, "normalMap");
+    // glUniform1i(ourTextureLoc, 0);
+    // glUniform1i(normalMapLoc, 1);
 
-    // glUniform1i(onDLightLoc, n_on_dirL);
-    // glUniform3fv(dLightDirLoc, 1, glm::value_ptr(m_lightings->direction_light.direction));
-    // glUniform3fv(dLightAmbLoc, 1, glm::value_ptr(m_lightings->direction_light.ambient));
-    // glUniform3fv(dLightDifLoc, 1, glm::value_ptr(m_lightings->direction_light.diffuse));
-    // glUniform3fv(dLightSpcLoc, 1, glm::value_ptr(m_lightings->direction_light.specular));
-
-    // // Positional Light Uniforms
-    // unsigned int onPLightLoc = glGetUniformLocation(shader.program, "on_Plight");
-    // unsigned int pLightPosLoc = glGetUniformLocation(shader.program, "plight_pos");
-    // unsigned int pLightAmbLoc = glGetUniformLocation(shader.program, "plight_amb");
-    // unsigned int pLightDifLoc = glGetUniformLocation(shader.program, "plight_dif");
-    // unsigned int pLightSpcLoc = glGetUniformLocation(shader.program, "plight_spc");
-
-    // glUniform1i(onPLightLoc, n_on_posL);
-    // glUniform3fv(pLightPosLoc, 1, glm::value_ptr(m_lightings->point_light.position));
-    // glUniform3fv(pLightAmbLoc, 1, glm::value_ptr(m_lightings->point_light.ambient));
-    // glUniform3fv(pLightDifLoc, 1, glm::value_ptr(m_lightings->point_light.diffuse));
-    // glUniform3fv(pLightSpcLoc, 1, glm::value_ptr(m_lightings->point_light.specular));
-
-    // Textures: ourTexture corresponds to the diffuse texture.
-
-    unsigned int ourTextureLoc = glGetUniformLocation(shader.program, "ourTexture");
-    unsigned int normalMapLoc = glGetUniformLocation(shader.program, "normalMap");
-    glUniform1i(ourTextureLoc, 0);
-    glUniform1i(normalMapLoc, 1);
-
-    // Textures On / Off nano gui uniforms
-    // unsigned int on_diffuseMapLoc = glGetUniformLocation(shader.program, "on_diffuseMap");
-    // unsigned int on_normalMapLoc = glGetUniformLocation(shader.program, "on_normalMap");
-    // glUniform1i(on_diffuseMapLoc, n_on_diffuseTex);
-    // glUniform1i(on_normalMapLoc, n_on_normalTex);
 }
 
 void Renderer::camera_move()

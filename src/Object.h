@@ -110,6 +110,48 @@ class Object
             min_bound[2] = point[2];
     }
 
+    // Cube with edge data to render the 3D Texture on.
+    GLfloat cube_vertices[24] = {
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 1.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 1.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 1.0,
+        1.0, 1.0, 0.0,
+        1.0, 1.0, 1.0
+    };
+
+    GLuint cube_indices[36] = {
+        1,5,7,
+        7,3,1,
+        0,2,6,
+        6,4,0,
+        0,1,3,
+        3,2,0,
+        7,5,4,
+        4,6,7,
+        2,3,7,
+        7,6,2,
+        1,0,4,
+        4,5,1
+    };
+
+    GLuint cube_edges[24]{
+        1,5,
+        5,7,
+        7,3,
+        3,1,
+        0,4,
+        4,6,
+        6,2,
+        2,0,
+        0,1,
+        2,3,
+        4,5,
+        6,7
+    };
+
 
  public:
 
@@ -146,9 +188,9 @@ class Object
         // 3 positions at a time for 3-coords of a vertex
         for (int i = 0; i < 24; i += 3)
         {
-            glm::vec3 vert_pos(RawDataUtil::cube_vertices[i],
-                               RawDataUtil::cube_vertices[i + 1],
-                               RawDataUtil::cube_vertices[i + 2]);
+            glm::vec3 vert_pos(cube_vertices[i],
+                               cube_vertices[i + 1],
+                               cube_vertices[i + 2]);
             ori_positions.push_back(vert_pos);
             update_bounds(vert_pos);
         }
@@ -160,7 +202,7 @@ class Object
             Face_Index face;
             for(int j = 0; j < 3; j++) 
             {
-                face.vertex[j] = RawDataUtil::cube_indices[i+j];            
+                face.vertex[j] = cube_indices[i+j];            
             }
             indexed_faces.push_back(face);
         }
