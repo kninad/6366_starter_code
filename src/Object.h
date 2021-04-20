@@ -11,33 +11,22 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "RawData.h"
+
 class Object
 {
-public:
+ public:
     struct Vertex
     {
         // Position
         glm::vec3 Position;
-        // Normal
-        glm::vec3 Normal;
         // TexCoords
-        glm::vec2 TexCoords;
-        // Tangent T
-        glm::vec3 Tangent;
-        // BiTangent B
-        glm::vec3 Bitangent;
-    };
-
-    struct Vertex_Index
-    {
-        int pos_idx;
-        int normal_idx;
-        int texcoord_idx;
+        glm::vec3 TexCoords;
     };
 
     struct Face_Index
     {
-        Vertex_Index vertex[3];
+        int vertex[3];
     };
 
     // veo and vao vector
@@ -46,8 +35,6 @@ public:
 
     // obj original data vector
     std::vector<glm::vec3> ori_positions;
-    std::vector<glm::vec3> ori_normals;
-    std::vector<glm::vec2> ori_texcoords;
 
     // obj face index vector
     std::vector<Face_Index> indexed_faces;
@@ -62,47 +49,32 @@ public:
     glm::vec4 obj_color = glm::vec4(0.7, 0.7, 0.7, 1.0);
     GLfloat shininess = 32.0f;
 
-    std::string m_obj_path;
-    std::string obj_name;
-
     GLuint vao, vbo, ebo;
-    GLuint diffuse_textureID, normal_textureID;
+    GLuint tex3dID;
+    // RawDataUtil::model3d_t model3d;
 
-private:
-    void add_vertex_from_face(const Face_Index &face)
-    {
+ private:
+
+    void add_vertex_from_face(const Face_Index& face)
+    {   
         Vertex points[3];
-        glm::vec3 tangent, bitangent;
-        // Populate the position, normal and texture information but not the T and B info.
+        const glm::vec3 k_FixedPosition(1.0,1.0,1.0);
+        // Populate the position and texture information.
         for (int i = 0; i < 3; i++)
         {
-            Vertex_Index v = face.vertex[i];
-            points[i].Position = ori_positions[v.pos_idx];
-            points[i].Normal = ori_normals[v.normal_idx];
-            points[i].TexCoords = ori_texcoords[v.texcoord_idx];
-        }
-
-        glm::vec3 edge1 = points[1].Position - points[0].Position;
-        glm::vec3 edge2 = points[2].Position - points[0].Position;
-        glm::vec2 deltaUV1 = points[1].TexCoords - points[0].TexCoords;
-        glm::vec2 deltaUV2 = points[2].TexCoords - points[0].TexCoords;
-
-        float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-        tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-        tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-        tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-
-        bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-        bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-        bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-
-        // Set the same T and B for all 3 points in face and push to vao_vertices.
-        for (int i = 0; i < 3; i++)
-        {
-            points[i].Tangent = tangent;
-            points[i].Bitangent = bitangent;
+            int vert_idx = face.vertex[i];
+            points[i].Position = ori_positions[vert_idx];            
+            points[i].TexCoords = k_FixedPosition - points[i].Position;
             vao_vertices.push_back(points[i]);
+        }
+        // Can set and use edge info here ? or somewhere?
+    }
+
+    void add_face_to_veo(const Face_Index& face)
+    {
+        for(int i=0; i < 3; i++)
+        {
+            veo_indices.push_back(face.vertex[i]);
         }
     }
 
@@ -138,61 +110,16 @@ private:
             min_bound[2] = point[2];
     }
 
-public:
-    unsigned int loadTexture(char const *path)
+
+ public:
+
+    Object()
     {
-        unsigned int textureID;
-        glGenTextures(1, &textureID);
-
-        int width, height, nrComponents;
-        unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
-        if (data)
-        {
-            GLenum format;
-            if (nrComponents == 1)
-                format = GL_RED;
-            else if (nrComponents == 3)
-                format = GL_RGB;
-            else if (nrComponents == 4)
-                format = GL_RGBA;
-
-            glBindTexture(GL_TEXTURE_2D, textureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-            glGenerateMipmap(GL_TEXTURE_2D);
-
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); // for this tutorial: use GL_CLAMP_TO_EDGE to prevent semi-transparent borders. Due to interpolation it takes texels from next repeat
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            stbi_image_free(data);
-        }
-        else
-        {
-            std::cout << "Texture failed to load at path: " << path << std::endl;
-            stbi_image_free(data);
-        }
-
-        return textureID;
-    }
-
-    Object(std::string obj_path)
-    {
-        this->m_obj_path = obj_path;
-        load_obj(this->m_obj_path);
+        // model3d = model3d_type;
+        load_cube_with_edges();
     };
 
     ~Object(){};
-
-    void print_glmvec3(const glm::vec3 vec)
-    {
-        std::cout << "\nVec3: ";
-        for (int i = 0; i < 3; i++)
-        {
-            std::cout << vec[i] << " ";
-        }
-        std::cout << std::endl;
-    }
 
     void update_center_camera_position(float fov = 45.0f)
     {
@@ -208,101 +135,60 @@ public:
         center_cam_pos[2] = glm::max(z_x, z_y) + max_bound[2];
     }
 
-    void load_obj(std::string obj_path)
+    void load_cube_with_edges()
     {
-        int path_str_length = obj_path.size();
-        std::string suffix = obj_path.substr(path_str_length - 3, path_str_length);
+        vao_vertices.clear();
+        veo_indices.clear();
+        indexed_faces.clear();
+        ori_positions.clear();
 
-        if (suffix == "obj")
+        // Iterate over vertex data
+        // 3 positions at a time for 3-coords of a vertex
+        for (int i = 0; i < 24; i += 3)
         {
-            this->vao_vertices.clear();
-            this->veo_indices.clear();
-            this->indexed_faces.clear();
-
-            this->ori_positions.clear();
-            this->ori_normals.clear();
-            this->ori_texcoords.clear();
-
-            std::ifstream ifs;
-            // Store original data vector
-            try
-            {
-                ifs.open(obj_path);
-                std::cout << "\n\n [DebugLog] Opened the object model file." << std::endl;
-                std::string one_line;
-                // int counter = 0; // For object center, running average computation
-                while (getline(ifs, one_line))
-                {
-                    std::stringstream ss(one_line);
-                    std::string type;
-                    ss >> type;
-                    if (type == "v")
-                    {
-                        glm::vec3 vert_pos;
-                        ss >> vert_pos[0] >> vert_pos[1] >> vert_pos[2];
-                        this->ori_positions.push_back(vert_pos);
-                        update_bounds(vert_pos);
-                    }
-                    else if (type == "vt")
-                    {
-                        glm::vec2 tex_coord;
-                        ss >> tex_coord[0] >> tex_coord[1];
-                        this->ori_texcoords.push_back(tex_coord);
-                    }
-                    else if (type == "vn")
-                    {
-                        glm::vec3 vert_norm;
-                        ss >> vert_norm[0] >> vert_norm[1] >> vert_norm[2];
-                        this->ori_normals.push_back(vert_norm);
-                    }
-                    else if (type == "f")
-                    {
-                        Face_Index face_idx;
-                        // Here we only accept face number 3 i.e triangle
-                        // In other words, face with only 3 vertices.
-                        for (int i = 0; i < 3; i++)
-                        {
-                            std::string s_vertex;
-                            ss >> s_vertex;
-                            int pos_idx = -1;
-                            int tex_idx = -1;
-                            int norm_idx = -1;
-                            sscanf(s_vertex.c_str(), "%d/%d/%d", &pos_idx, &tex_idx, &norm_idx);
-                            // We have to use index -1 because the obj index starts at 1
-                            // Incorrect input will be set as -1
-                            face_idx.vertex[i].pos_idx = pos_idx > 0 ? pos_idx - 1 : -1;
-                            face_idx.vertex[i].texcoord_idx = tex_idx > 0 ? tex_idx - 1 : -1;
-                            face_idx.vertex[i].normal_idx = norm_idx > 0 ? norm_idx - 1 : -1;
-                        }
-                        indexed_faces.push_back(face_idx);
-                    }
-                }
-            }
-            catch (const std::exception &)
-            {
-                std::cout << "Error: Obj file cannot be read\n";
-            }
-
-            /*
-             * TODO: Retrieve data from index and assign to vao and veo
-             */
-            for (int i = 0; i < indexed_faces.size(); i++)
-            {
-                // Populate vao_vertices
-                add_vertex_from_face(indexed_faces[i]);
-                // Push the vertex indices!
-                veo_indices.push_back(3 * i);
-                veo_indices.push_back(3 * i + 1);
-                veo_indices.push_back(3 * i + 2);
-            }
-
-            update_center_camera_position();           // use default fov of 45
-            std::cout << "\n\n [DebugLog] Cent Pos: "; // center_cam_pos[0] << " " << center_cam_pos[1] << " " << center_cam_pos[2];
-            print_glmvec3(center_cam_pos);
-            print_glmvec3(max_bound);
-            print_glmvec3(min_bound);
-            print_glmvec3(obj_center);
-            std::cout << std::endl;
+            glm::vec3 vert_pos(RawDataUtil::cube_vertices[i],
+                               RawDataUtil::cube_vertices[i + 1],
+                               RawDataUtil::cube_vertices[i + 2]);
+            ori_positions.push_back(vert_pos);
+            update_bounds(vert_pos);
         }
-    };
+
+        // Now the face data using face indices
+        // Can also optinally just set the veo_indices vector directly here!
+        for (int i = 0; i < 36; i+=3)
+        {
+            Face_Index face;
+            for(int j = 0; j < 3; j++) 
+            {
+                face.vertex[j] = RawDataUtil::cube_indices[i+j];            
+            }
+            indexed_faces.push_back(face);
+        }
+
+        // Retrieve data from index and assign to vao and veo
+        for(int i = 0; i < indexed_faces.size(); i++)
+        {
+            // populate vao_vertices and veo_indices
+            add_vertex_from_face(indexed_faces[i]);
+            add_face_to_veo(indexed_faces[i]);
+        }
+    }
+
+    GLuint load3dTexture(RawDataUtil::model3d_t model_type)
+    {
+        GLuint textureID;
+        glGenTextures(1, &textureID);
+
+        GLubyte* data = RawDataUtil::load_3Dfrom_type(model_type);
+        if(!data)
+        {
+            std::cout << "Raw Data Model Loading failed! " << std::endl;
+        }
+
+        
+
+        return textureID;
+    }
+
+
 };
