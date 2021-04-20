@@ -22,13 +22,14 @@
 #include "Object.h"
 #include "Shader.h"
 
+
 class Renderer
 {
    public:
     GLFWwindow* m_window;
 
     static Camera* m_camera;
-    static Lighting* m_lightings;
+    // static Lighting* m_lightings;
 
     static nanogui::Screen* m_nanogui_screen;
 
