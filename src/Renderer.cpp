@@ -310,17 +310,8 @@ void Renderer::load_models()
     {
         delete cur_obj_ptr;
     }
-    // std::string obj_path = "../src/objs/";
-    // if (nano_reload_model)
-    // {
-    //     model_name = obj_path + nano_model_name;
-    //     std::cout << "\n[DebugLog] NanoObjPath: " << obj_path << nano_model_name;
-    //     std::cout << "\n[DebugLog] Final Model Name: \n"
-    //               << model_name;
-    // }
-    // cur_obj_ptr = new Object(model_name);
-    cur_obj_ptr = new Object();
 
+    cur_obj_ptr = new Object(); // default object from given cube data 
 
     glGenVertexArrays(1, &(cur_obj_ptr->vao)); // public member
     glGenBuffers(1, &(cur_obj_ptr->vbo));
@@ -351,33 +342,14 @@ void Renderer::load_models()
     // Texture Loading 
     cur_obj_ptr->tex3dID = cur_obj_ptr->load3dTexture(nano_3dmodel);
 
-    // std::string texture_path = "../src/textures/";
-    // std::string texture_file;
-    // if (nano_model_name == "cyborg.obj")
-    // {
-    //     texture_file = texture_path + "cyborg";
-    // }
-    // else if (nano_model_name == "cube.obj" || nano_model_name == "two_cubes.obj")
-    // {
-    //     texture_file = texture_path + "cube";
-    // }
-    // std::string _diffuse_file = texture_file + "_diffuse.png";
-    // std::string _normal_file = texture_file + "_normal.png";
-    // cur_obj_ptr->diffuse_textureID = cur_obj_ptr->loadTexture(_diffuse_file.c_str());
-    // cur_obj_ptr->normal_textureID = cur_obj_ptr->loadTexture(_normal_file.c_str());
-
     /*
-     * TODO: Set Camera parameters here
+     * Set Camera parameters here
      */
     m_camera->model_center_position = cur_obj_ptr->center_cam_pos;
     // Sane default for camera position options in nano gui
     nano_campos_x = cur_obj_ptr->center_cam_pos[0];
     nano_campos_y = cur_obj_ptr->center_cam_pos[1];
     nano_campos_z = cur_obj_ptr->center_cam_pos[2];
-
-    // Also Set the Initial Location for the Point Light
-    // m_lightings->point_light.position = cur_obj_ptr->center_cam_pos;
-    // m_lightings->set_reset_pos(cur_obj_ptr->center_cam_pos); // Save the reset position for point light
 
     nanogui_init(this->m_window);
 }

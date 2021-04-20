@@ -21,6 +21,26 @@ namespace RawDataUtil {
 
     const std::string colorbar_path = base_path + "colorbar.png";
 
+    glm::vec3 get_dims(model3d_t model_type)
+    {
+        if (model_type == BUCKY)
+        {
+            return glm::vec3(32, 32, 32);
+        } 
+        else if(model_type == BONSAI)
+        {
+            return glm::vec3(512, 512, 154);
+        }
+        else if(model_type == TEAPOT)
+        {
+            return glm::vec3(256, 256, 178);
+        }
+        else if(model_type == HEAD)
+        {
+            return glm::vec3(256, 256, 225);
+        }
+    }
+
     GLubyte* load_3d_raw_data(std::string texture_path, glm::vec3 dimension)
     {
         size_t size = dimension[0] * dimension[1] * dimension[2];
