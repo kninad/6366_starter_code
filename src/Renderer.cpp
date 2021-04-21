@@ -334,10 +334,13 @@ void Renderer::draw_scene(Shader& shader)
     /*
      * TODO: Remember to enable GL_DEPTH_TEST and GL_CULL_FACE
      */
-    glEnable(GL_DEPTH_TEST);
+    // glEnable(GL_DEPTH_TEST);
     glPointSize(4.0f);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     if (nano_enum_cull == CW)
     {
         glFrontFace(GL_CW);
