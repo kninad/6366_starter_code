@@ -94,7 +94,7 @@ class Renderer
 
     void scene_reset();
 
-    void view_slicing_simple();
+    void view_slicing();
 
-    void _view_slicing_simple();
+    void simple_slice();
 };

@@ -1,4 +1,8 @@
 #include "Renderer.h"
+#include <cmath>
+#include <unordered_set>
+
+const float EPSILON = 1e-6;
 
 Camera *Renderer::m_camera = new Camera();
 
@@ -90,6 +94,93 @@ GLuint cube_edges[24] = {
     2, 3,
     4, 5,
     6, 7};
+
+// Returns the coefficient in the line equation. For us (in cube), it has to be bounded
+// between 0 and 1 (inclusive). So if its out of range, we return -1.0.
+float get_intersection_coef(glm::vec3 plane_point, glm::vec3 normal, glm::vec3 line_point, glm::vec3 line_dir)
+{
+    // Plane Line Intersection
+    // Plane: (point - plane_point) * n = 0
+    // Line: point = line_point + (lambda) line_dir.
+    // Need to find lambda (float)
+    float numerator = glm::dot((plane_point - line_point), normal);
+    float denom = glm::dot(line_dir, normal);
+    float coef;
+    if (abs(denom) < EPSILON)
+    {
+        // parallel plane and line
+        if (abs(numerator) < EPSILON)
+        {
+            coef = 0.0f;
+        }
+    }
+    else
+    {
+        coef = numerator / denom;
+        if(coef < 0.0f || coef > 1.0f) // out of range!
+        {
+            coef = -1.0f;
+        }
+    }
+
+    return coef;
+}
+
+// Returns the center point for a polygon
+glm::vec3 center_point(const std::vector<glm::vec3>& point_list)
+{
+    glm::vec3 avg(0,0,0);
+    for(const auto& p : point_list)
+    {
+        avg += p;
+    }
+    avg /= point_list.size();
+    return avg;
+}
+
+// Hacky and non optimal way to do sorting O(n^2)-- bUT n = 6 for us.
+std::vector<glm::vec3> sort_points(const std::vector<glm::vec3>& point_list, const std::vector<float>& angles)
+{
+    std::unordered_set<int> seen_idxs;
+    std::vector<int> ordered_idxs;
+    std::vector<glm::vec3> ordered_points;
+    for(int j = 0; j < point_list.size(); j++)
+    {
+        int min_idx;
+        float min_val = INT_MAX;
+        for(int i = 0; i < point_list.size(); i++)
+        {
+            if(seen_idxs.count(i) == 0)
+            {
+                if(angles[i] < min_val)
+                {
+                    min_val = angles[i];
+                    min_idx = i;
+                }
+            }
+        }
+        seen_idxs.insert(min_idx);
+        // ordered_idxs.push_back(min_idx);
+        ordered_points.push_back(point_list[min_idx]);
+    }
+    return ordered_points;
+}
+
+// Returns a new vector of points in sorted order wrt center
+std::vector<glm::vec3> get_ordered_points(const std::vector<glm::vec3>& point_list, const glm::vec3& center)
+{
+    std::vector<float> cos_angles;
+    glm::vec3 fixed_vec (1.0, 0.0, 0.0); // For reference angle (X - axis)
+    for(const auto& p : point_list)
+    {
+        float dot_prod = glm::dot(fixed_vec, glm::normalize(p - center));
+        cos_angles.push_back(dot_prod);
+    }
+    // Now Sort and get ordered points.
+    return sort_points(point_list, cos_angles);
+}
+
+
 
 Renderer::Renderer() {}
 
@@ -274,7 +365,7 @@ void Renderer::display(GLFWwindow *window)
         setup_uniform_values(m_shader);
 
         // Perform View Slicing and populate the vao.
-        view_slicing_simple();
+        view_slicing();
 
         // std::cout << "\n[DebugLog] Drawing the scene!\n";
         draw_scene(m_shader);
@@ -314,8 +405,8 @@ void Renderer::load_models()
     }
 
     cur_obj_ptr = new Object(model_name);
-    const int max_slices = 5000;
-    std::vector<glm::vec3> tmp(5000);
+    const int max_slices = 3000;
+    glm::vec3 tmp_buffer[max_slices * 6]; // max 6 points per slice.
 
     glGenVertexArrays(1, &(cur_obj_ptr->vao)); // public member
     glGenBuffers(1, &(cur_obj_ptr->vbo));
@@ -326,8 +417,8 @@ void Renderer::load_models()
     glBindVertexArray(cur_obj_ptr->vao); // model.vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo); // model.vbo);
-    // Fill glBufferData with zeros initially
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * tmp.size(), 0, GL_DYNAMIC_DRAW);
+    // Fill glBufferData with zeros initially with a buffer for max 5000 glm::vec3 points
+    glBufferData(GL_ARRAY_BUFFER, sizeof(tmp_buffer), 0, GL_DYNAMIC_DRAW);
     // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
     glEnableVertexAttribArray(0);
@@ -533,30 +624,19 @@ void Renderer::camera_move()
     nano_campos_z = m_camera->position[2];
 }
 
-void Renderer::view_slicing_simple()
-{   
-    const int max_slices = 5000;
-    glm::vec3 vTextureSlices[max_slices * 12];
-    int num_slices = nano_sampling_rate;
-    int edges[12][2];
-    glm::vec3 vertexList[8];
-    for (int i = 0; i < 8; i += 3)
-    {
-        vertexList[i] = glm::vec3(cube_vertices[i], cube_vertices[i + 1], cube_vertices[i + 2]);
-    }
-    for (int i = 0; i < 12; i += 2)
-    {
-        edges[i][0] = cube_edges[i];
-        edges[i][1] = cube_edges[i + 1];
-    }
+void Renderer::view_slicing()
+{
+    // View Matrix
+    glm::mat4 view = glm::mat4(1.0f);
+    view = m_camera->GetViewMatrix();
+    glm::vec3 viewDir(view[8], view[9], view[10]);
+    glm::vec3 camPosn = m_camera->position;
 
-    glm::vec3 viewDir = m_camera->front + m_camera->position;
-    const float EPSILON = 1e-6;
-
+    auto vertexList = cur_obj_ptr->ori_positions;
     float max_dist = glm::dot(viewDir, vertexList[0]);
     float min_dist = max_dist;
     int max_index = 0;
-    int count = 0;
+    int min_index = 0;
     for (int i = 1; i < 8; i++)
     {
         float dist = glm::dot(viewDir, vertexList[i]);
@@ -566,119 +646,65 @@ void Renderer::view_slicing_simple()
             max_index = i;
         }
         if (dist < min_dist)
+        {
             min_dist = dist;
-    }
-    // int max_dim = FindAbsMax(viewDir);
+            min_index = i;
+        }
+    }    
     min_dist -= EPSILON;
     max_dist += EPSILON;
+    float delta = (max_dist - min_dist) / nano_sampling_rate;
+    float start_lamb = min_dist;
 
-    int edgeList[8][12] = {
-        {0, 1, 5, 6, 4, 8, 11, 9, 3, 7, 2, 10}, //v0 is front
-        {0, 4, 3, 11, 1, 2, 6, 7, 5, 9, 8, 10}, //v1 is front
-        {1, 5, 0, 8, 2, 3, 7, 4, 6, 10, 9, 11}, //v2 is front
-        {7, 11, 10, 8, 2, 6, 1, 9, 3, 0, 4, 5}, // v3 is front
-        {8, 5, 9, 1, 11, 10, 7, 6, 4, 3, 0, 2}, // v4 is front
-        {9, 6, 10, 2, 8, 11, 4, 7, 5, 0, 1, 3}, // v5 is front
-        {9, 8, 5, 4, 6, 1, 2, 0, 10, 7, 11, 3}, // v6 is front
-        {10, 9, 6, 5, 7, 2, 3, 1, 11, 4, 8, 0}  // v7 is front
-    };
-
-    glm::vec3 vecStart[12];
-    glm::vec3 vecDir[12];
-    float lambda[12];
-    float lambda_inc[12];
-    float denom = 0;
-    float plane_dist = min_dist;
-    float plane_dist_inc = (max_dist - min_dist) / float(num_slices);
-
-    for (int i = 0; i < 12; i++)
-    {
-        int edge_number = edgeList[max_index][i];
-        vecStart[i] = vertexList[edges[edge_number][0]];
-        vecDir[i] = vertexList[edges[edge_number][1]] - vecStart[i];
-        denom = glm::dot(vecDir[i], viewDir);
-
-        if (1.0 + denom != 1.0)
+    // Max 6 intersection points per slicing plane
+    // Store tesselated triangle vertices in the vector
+    std::vector<glm::vec3> slice_vao_vertices;
+    for (int i = 0; i < nano_sampling_rate; i++)
+    {   
+        std::vector<glm::vec3> intersection_points;
+        glm::vec3 plane_point = camPosn + (start_lamb + i * delta) * viewDir;
+        // Check intersection with all edges
+        for(int j = 0; j < 12; j++)
         {
-            lambda_inc[i] = plane_dist_inc / denom;
-            lambda[i] = (plane_dist - glm::dot(vecStart[i], viewDir)) / denom;
+            glm::vec3 edge_point = cur_obj_ptr->edges_parametric[j][0];
+            glm::vec3 edge_direc = cur_obj_ptr->edges_parametric[j][1];
+            float coef = get_intersection_coef(plane_point, viewDir, edge_point, edge_direc);
+            if(coef >= -1.0f * EPSILON) // just to be safe to include 0.0f as well
+            {
+                glm::vec3 tmp_point = edge_point + coef * edge_direc;
+                intersection_points.push_back(tmp_point);
+            }
         }
-        else
+        // Obtained a polygon in intersection_points
+        // Sort in counter clockwise order: order wrt angle with x-axis. 
+        auto center = center_point(intersection_points);
+        auto sorted_pts = get_ordered_points(intersection_points, center);
+        // Tesselate it and store in the vector for VAO points.        
+        for(int i = 0; i < sorted_pts.size(); i++)
         {
-            lambda[i] = -1.0;
-            lambda_inc[i] = 0.0;
+            // p(i), center, p(i+1)
+            slice_vao_vertices.push_back(sorted_pts[i]);
+            slice_vao_vertices.push_back(center);
+            if(i == (sorted_pts.size() - 1))
+            {
+                slice_vao_vertices.push_back(sorted_pts[0]);
+            }
+            else
+            {
+                slice_vao_vertices.push_back(sorted_pts[i + 1]);
+            }
         }
     }
-
-    glm::vec3 intersection[6];
-    float dL[12];
-    for (int i = num_slices - 1; i >= 0; i--)
-    {
-        for (int e = 0; e < 12; e++)
-        {
-            dL[e] = lambda[e] + i * lambda_inc[e];
-        }
-
-        if ((dL[0] >= 0.0) && (dL[0] < 1.0))
-        {
-            intersection[0] = vecStart[0] + dL[0] * vecDir[0];
-        }
-        else if ((dL[1] >= 0.0) && (dL[1] < 1.0))
-        {
-            intersection[0] = vecStart[1] + dL[1] * vecDir[1];
-        }
-        else if ((dL[3] >= 0.0) && (dL[3] < 1.0))
-        {
-            intersection[0] = vecStart[3] + dL[3] * vecDir[3];
-        }
-        else continue;
-
-        if ((dL[2] >= 0.0) && (dL[2] < 1.0))
-        {
-            intersection[1] = vecStart[2] + dL[2] * vecDir[2];
-        }
-        else if ((dL[0] >= 0.0) && (dL[0] < 1.0))
-        {
-            intersection[1] = vecStart[0] + dL[0] * vecDir[0];
-        }
-        else if ((dL[1] >= 0.0) && (dL[1] < 1.0))
-        {
-            intersection[1] = vecStart[1] + dL[1] * vecDir[1];
-        }
-        else
-        {
-            intersection[1] = vecStart[3] + dL[3] * vecDir[3];
-        }
-
-
-        if ((dL[2] >= 0.0) && (dL[2] < 1.0))
-        {
-            intersection[1] = vecStart[2] + dL[2] * vecDir[2];
-        }
-        else if ((dL[0] >= 0.0) && (dL[0] < 1.0))
-        {
-            intersection[1] = vecStart[0] + dL[0] * vecDir[0];
-        }
-        else if ((dL[1] >= 0.0) && (dL[1] < 1.0))
-        {
-            intersection[1] = vecStart[1] + dL[1] * vecDir[1];
-        }
-        else
-        {
-            intersection[1] = vecStart[3] + dL[3] * vecDir[3];
-        }
-
-
-        //similarly for others edges unitl intersection[5]
-        int indices[] = {0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5};
-        for (int j = 0; j < 12; j++) {
-            vTextureSlices[count++] = intersection[indices[j]];
-        }
-    }
-    
+    std::cout << "[DEBUG] Slicing VAO vertices size: " << slice_vao_vertices.size() << std::endl;
     glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vTextureSlices), &(vTextureSlices[0].x));
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * slice_vao_vertices.size(), &(slice_vao_vertices.front()));
 }
+
+
+
+
+
+
 
 std::vector<glm::vec3> get_vertices_simple(float zval)
 {
@@ -716,7 +742,7 @@ std::vector<glm::vec3> get_vertices_simple(float zval)
     return face_vert;
 }
 
-void Renderer::_view_slicing_simple()
+void Renderer::simple_slice()
 {
     std::vector<glm::vec3> vertSlices;
     int num_samples = nano_sampling_rate;
@@ -728,7 +754,7 @@ void Renderer::_view_slicing_simple()
         std::vector<glm::vec3> tmp = get_vertices_simple(zval);
         vertSlices.insert(vertSlices.end(), tmp.begin(), tmp.end());
     }
-
+    // std::cout << "vertSlice size: " << vertSlices.size() << std::endl;
     cur_obj_ptr->vao_points = vertSlices;
 
     glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);

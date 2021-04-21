@@ -64,6 +64,8 @@ public:
     GLuint vao, vbo, ebo;
     GLuint texture3dID;
 
+    glm::vec3 edges_parametric[12][2];
+
 private:
     void add_vertex_from_face(const Face_Index &face)
     {
@@ -148,6 +150,16 @@ private:
         2, 3,
         4, 5,
         6, 7};
+
+    void set_edges_parametric()
+    {        
+        for(int i = 0; i < 12; i++)
+        {
+            int idx = 2*i;
+            edges_parametric[i][0] = ori_positions[cube_edges[idx]];
+            edges_parametric[i][1] = ori_positions[cube_edges[idx + 1]] - ori_positions[cube_edges[idx]];
+        }
+    }
 
 public:
     Object(std::string obj_path)
@@ -284,6 +296,8 @@ public:
             print_glmvec3(obj_center);
             std::cout << std::endl;
         }
+
+        set_edges_parametric();
     };
 
     GLuint load3dTexture(RawDataUtil::model3d_t model_type)
@@ -312,4 +326,7 @@ public:
 
         return textureID;
     }
+
+
+
 };
