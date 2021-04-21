@@ -4,30 +4,6 @@ Camera* Renderer::m_camera = new Camera();
 
 nanogui::Screen* Renderer::m_nanogui_screen = nullptr;
 
-/*
- * TODO: Deprecate these
- * 		and use Object::vao and Object::vbo instead for your loaded model
- */
-// GLuint VBO, VAO;
-
-/*
- * TODO: Deprecate these
- * 		and create global variables for your GUI
- */
-// enum test_enum
-// {
-//     Item1 = 0,
-//     Item2,
-//     Item3
-// };
-// bool bvar = true;
-// int ivar = 12345678;
-// double dvar = 3.1415926;
-// float fvar = (float)dvar;
-// std::string strval = "A string";
-// test_enum enumval = Item2;
-// nanogui::Color col_val(1.0f, 1.0f, 1.0f, 1.0f);
-
 // Pre-defined
 bool Renderer::keys[1024];
 enum render_type
@@ -53,8 +29,6 @@ enum depth_type
 };
 
 // Global Vars for Nano GUI
-nanogui::Color nano_col_val(0.10f, 0.4f, 0.8f, 1.0f);
-// std::string nano_model_name = "rock.obj";  // Deafault to Rock
 std::string nano_model_name = "mycube.obj";  // Deafault to Rock
 
 float nano_campos_x = 0.0f;
@@ -74,7 +48,12 @@ bool n_rotate_ydown = false;
 bool n_rotate_zdown = false;
 
 render_type nano_enum_render = TRIANGLE;
-culling_type nano_enum_cull = CW;
+culling_type nano_enum_cull = CCW;
+RawDataUtil::model3d_t nano_3dmodel = RawDataUtil::TEAPOT;
+
+nanogui::Color nano_col_val(0.10f, 0.4f, 0.8f, 1.0f);
+bool nano_transfer_func_sign = false;
+int nano_sampling_rate = 100;
 
 // good init for 1st run and to ensure Renderer::is_scene_reset starts with a true
 bool nano_reload_model = true;
@@ -140,21 +119,15 @@ void Renderer::nanogui_init(GLFWwindow* window)
      */
     bool enabled = true;
 
-    gui->addGroup("Color");
-    gui->addVariable("Object Color", nano_col_val)->setFinalCallback([](const nanogui::Color& c) {
-        std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b()
-                  << ", " << c.w() << "]" << std::endl;
-        nano_col_val = c;
-    });
-
-    // personal todo: how to set the default x,y,z to centered camera position.
-    // right now they are at (0,0,0) during init.
     gui->addGroup("Position");
+
     gui->addVariable("X", nano_campos_x)->setSpinnable(true);
     gui->addVariable("Y", nano_campos_y)->setSpinnable(true);
     gui->addVariable("Z", nano_campos_z)->setSpinnable(true);
 
+
     gui->addGroup("Rotate");
+
     gui->addVariable("Rotate Value", nano_rotate_val)->setSpinnable(true);
     gui->addButton("Rotate Right +", []() { n_rotate_xup = true; })
         ->setTooltip("Testing a much longer tooltip.");
@@ -169,19 +142,39 @@ void Renderer::nanogui_init(GLFWwindow* window)
     gui->addButton("Rotate Front -", []() { n_rotate_zdown = true; })
         ->setTooltip("Testing a much longer tooltip.");
 
+
     gui->addGroup("Configuration");
+
     gui->addVariable("Z Near", nano_znear)->setSpinnable(true);
     gui->addVariable("Z Far", nano_zfar)->setSpinnable(true);
     gui->addVariable("FOV", nano_fov)->setSpinnable(true);
 
-    gui->addVariable("Model Name", nano_model_name);
+    // gui->addVariable("Model Name", nano_model_name);
+    gui->addVariable("Model Name", nano_3dmodel, enabled)
+        ->setItems({"BUCKY", "TEAPOT", "BONSAI", "HEAD"});
+    
     gui->addVariable("Render Type", nano_enum_render, enabled)
         ->setItems({"POINT", "LINE", "TRIANGLE"});
+    
     gui->addVariable("Cull Type", nano_enum_cull, enabled)->setItems({"CW", "CCW"});
+    
     gui->addButton("Reload model", []() { nano_reload_model = true; })
         ->setTooltip("Testing a much longer tooltip.");
-    gui->addButton("Reset", []() { nano_reset = true; })
+    
+    gui->addButton("Reset Camera", []() { nano_reset = true; })
         ->setTooltip("Testing a much longer tooltip.");
+
+    
+    gui->addGroup("Volume Rendering");    
+    
+    gui->addVariable("Object Color", nano_col_val)->setFinalCallback([](const nanogui::Color &c) {
+        std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b()<< ", " << c.w() << "]" << std::endl;
+        nano_col_val = c;
+    });
+    gui->addVariable("Transfer Function Sign", nano_transfer_func_sign);
+    gui->addVariable("Sampling Rate", nano_sampling_rate); 
+
+    // ********************************************************************
 
     m_nanogui_screen->setVisible(true);
     m_nanogui_screen->performLayout();
@@ -226,7 +219,7 @@ void Renderer::nanogui_init(GLFWwindow* window)
 
 void Renderer::display(GLFWwindow* window)
 {
-    Shader m_shader = Shader("../src/shader/basic.vert", "../src/shader/basic.frag");
+    Shader m_shader = Shader("../src/shader/volrender.vert", "../src/shader/volrender.frag");
 
     // Main frame while loop
     while (!glfwWindowShouldClose(window))
@@ -278,8 +271,6 @@ void Renderer::load_models()
 {
     /*
      * TODO: Create Object class and bind VAO & VBO.
-     * Here we just use show simple triangle
-     * DONE?
      */
 
     if (cur_obj_ptr)
@@ -314,20 +305,18 @@ void Renderer::load_models()
                  &(cur_obj_ptr->veo_indices[0]), GL_STATIC_DRAW);
 
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
-    // Normal attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat),
+    // Texture attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat),
                           (GLvoid*)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
-    // Texture attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat),
-                          (GLvoid*)(6 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(2);
 
     glBindVertexArray(0);  // Unbind VAO
 
-    // obj_list.push_back(model);
+    // Texture Loading 
+    cur_obj_ptr->texture3dID = cur_obj_ptr->load3dTexture(nano_3dmodel);
+
 
     /*
      * TODO: You can also set Camera parameters here
@@ -393,6 +382,11 @@ void Renderer::draw_object(Shader& shader, Object& object)
     }
     glDrawArrays(our_mode, 0, object.vao_vertices.size());
     // glDrawElements(our_mode, object.vao_vertices.size(), GL_UNSIGNED_INT, 0);
+
+    // Reset back Polygon Mode to GL_FILL so as to not mess up the Nano GUI.
+    // Otherwise it just make everything in the GUI to be in lineframe mode.
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
     glBindVertexArray(0);  // unbind vao.
 }
 

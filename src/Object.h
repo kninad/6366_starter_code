@@ -11,17 +11,16 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "RawData.h"
+
 class Object
 {
    public:
+
     struct Vertex
     {
-        // Position
         glm::vec3 Position;
-        // Normal
-        glm::vec3 Normal;
-        // TexCoords
-        glm::vec2 TexCoords;
+        glm::vec3 TexCoords;
     };
 
     struct Vertex_Index
@@ -62,6 +61,7 @@ class Object
     std::string obj_name;
 
     GLuint vao, vbo, ebo;
+    GLuint texture3dID;
 
    private:
     void add_vertex_from_face(const Face_Index& face)
@@ -71,8 +71,9 @@ class Object
             Vertex_Index v = face.vertex[i];
             Vertex tmp;
             tmp.Position = ori_positions[v.pos_idx];
-            tmp.Normal = ori_normals[v.normal_idx];
-            tmp.TexCoords = ori_texcoords[v.texcoord_idx];
+            // tmp.Normal = ori_normals[v.normal_idx];
+            // tmp.TexCoords = ori_texcoords[v.texcoord_idx];
+            tmp.TexCoords = glm::vec3(1.0,1.0,1.0) - tmp.Position;
             vao_vertices.push_back(tmp);
         }
     }
@@ -106,6 +107,49 @@ class Object
         if (point[2] > max_bound[2]) max_bound[2] = point[2];
         if (point[2] < min_bound[2]) min_bound[2] = point[2];
      }
+
+
+    GLfloat cube_vertices[24] = {
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 1.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 1.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 1.0,
+        1.0, 1.0, 0.0,
+        1.0, 1.0, 1.0
+    };
+
+    GLuint cube_indices[36] = {
+        1,5,7,
+        7,3,1,
+        0,2,6,
+        6,4,0,
+        0,1,3,
+        3,2,0,
+        7,5,4,
+        4,6,7,
+        2,3,7,
+        7,6,2,
+        1,0,4,
+        4,5,1
+    };
+
+    GLuint cube_edges[24]{
+        1,5,
+        5,7,
+        7,3,
+        3,1,
+        0,4,
+        4,6,
+        6,2,
+        2,0,
+        0,1,
+        2,3,
+        4,5,
+        6,7
+    };
+
 
    public:
     Object(std::string obj_path)
@@ -224,9 +268,16 @@ class Object
                 // Populate vao_vertices
                 add_vertex_from_face(indexed_faces[i]);
                 // Push the vertex indices!
-                veo_indices.push_back(3 * i);
-                veo_indices.push_back(3 * i + 1);
-                veo_indices.push_back(3 * i + 2);
+                // veo_indices.push_back(3 * i);
+                // veo_indices.push_back(3 * i + 1);
+                // veo_indices.push_back(3 * i + 2);
+            }
+
+
+            // populate veo_indices
+            for(int i = 0; i < 36; i++)
+            {
+                veo_indices.push_back(cube_indices[i]);
             }
 
             update_center_camera_position(); // use default fov of 45
@@ -238,4 +289,29 @@ class Object
             std::cout << std::endl;
         }
     };
+
+    GLuint load3dTexture(RawDataUtil::model3d_t model_type)
+    {
+        GLuint textureID;
+        glGenTextures(1, &textureID);
+
+        GLubyte* data = RawDataUtil::load_3Dfrom_type(model_type);
+        if(!data)
+        {
+            std::cout << "Raw Data Model Loading failed! " << std::endl;
+        }
+        glm::vec3 dims = RawDataUtil::get_dims(model_type);
+        glBindTexture(GL_TEXTURE_3D, textureID);
+        glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, dims[0], dims[1], dims[2], 0, GL_RED, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_3D);
+
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        return textureID;
+    }
 };
