@@ -22,7 +22,6 @@
 #include "Object.h"
 #include "Shader.h"
 
-
 class Renderer
 {
    public:
@@ -48,7 +47,7 @@ class Renderer
      * You can also import CLI11 (https://github.com/CLIUtils/CLI11)
      * to load model from command line
      */
-    
+    std::string model_name = "../src/objs/rock.obj"; // Default 3D object
 
     GLfloat delta_time = 0.0;
     GLfloat last_frame = 0.0;
@@ -72,13 +71,6 @@ class Renderer
     template<typename T>
     unsigned long vecdata_size(const typename std::vector<T>& vec){
         return sizeof(T) * vec.size();
-    }
-
-
-    glm::vec3 ngolor_to_glm(nanogui::Color color)
-    {
-        glm::vec3 ret_color = glm::vec3(color[0], color[1], color[2]);
-        return ret_color;
     }
 
 
