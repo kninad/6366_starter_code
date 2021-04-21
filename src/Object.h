@@ -34,7 +34,9 @@ public:
         Vertex_Index vertex[3];
     };
 
-    // veo and vao vector
+    // VAO VECTOR
+    std::vector<glm::vec3> vao_points = std::vector<glm::vec3>(5000);
+    // veo and vao vector (OLD)
     std::vector<Vertex> vao_vertices;
     std::vector<unsigned int> veo_indices;
 
@@ -133,7 +135,7 @@ private:
         1, 0, 4,
         4, 5, 1};
 
-    GLuint cube_edges[24]{
+    GLuint cube_edges[24] = {
         1, 5,
         5, 7,
         7, 3,

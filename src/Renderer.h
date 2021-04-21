@@ -93,4 +93,8 @@ class Renderer
     void setup_uniform_values(Shader& shader);
 
     void scene_reset();
+
+    void view_slicing_simple();
+
+    void _view_slicing_simple();
 };

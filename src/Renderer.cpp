@@ -1,8 +1,8 @@
 #include "Renderer.h"
 
-Camera* Renderer::m_camera = new Camera();
+Camera *Renderer::m_camera = new Camera();
 
-nanogui::Screen* Renderer::m_nanogui_screen = nullptr;
+nanogui::Screen *Renderer::m_nanogui_screen = nullptr;
 
 // Pre-defined
 bool Renderer::keys[1024];
@@ -29,7 +29,7 @@ enum depth_type
 };
 
 // Global Vars for Nano GUI
-std::string nano_model_name = "mycube.obj";  // Deafault to Rock
+std::string nano_model_name = "mycube.obj"; // Deafault to Rock
 
 float nano_campos_x = 0.0f;
 float nano_campos_y = 0.0f;
@@ -67,6 +67,30 @@ bool nano_reset = false;
 // shading_type shading_val = SMOOTH;
 // depth_type depth_val = LESS;
 
+GLfloat cube_vertices[24] = {
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 1.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 1.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 1.0,
+    1.0, 1.0, 0.0,
+    1.0, 1.0, 1.0};
+
+GLuint cube_edges[24] = {
+    1, 5,
+    5, 7,
+    7, 3,
+    3, 1,
+    0, 4,
+    4, 6,
+    6, 2,
+    2, 0,
+    0, 1,
+    2, 3,
+    4, 5,
+    6, 7};
+
 Renderer::Renderer() {}
 
 Renderer::~Renderer() {}
@@ -102,7 +126,7 @@ void Renderer::init()
     nanogui_init(this->m_window);
 }
 
-void Renderer::nanogui_init(GLFWwindow* window)
+void Renderer::nanogui_init(GLFWwindow *window)
 {
     m_nanogui_screen = new nanogui::Screen();
     m_nanogui_screen->initialize(window, true);
@@ -110,7 +134,7 @@ void Renderer::nanogui_init(GLFWwindow* window)
     glViewport(0, 0, m_camera->width, m_camera->height);
 
     // Create nanogui gui
-    nanogui::FormHelper* gui = new nanogui::FormHelper(m_nanogui_screen);
+    nanogui::FormHelper *gui = new nanogui::FormHelper(m_nanogui_screen);
     nanogui::ref<nanogui::Window> nanoguiWindow =
         gui->addWindow(Eigen::Vector2i(0, 0), "Nanogui control bar_1");
 
@@ -124,7 +148,6 @@ void Renderer::nanogui_init(GLFWwindow* window)
     gui->addVariable("X", nano_campos_x)->setSpinnable(true);
     gui->addVariable("Y", nano_campos_y)->setSpinnable(true);
     gui->addVariable("Z", nano_campos_z)->setSpinnable(true);
-
 
     gui->addGroup("Rotate");
 
@@ -142,7 +165,6 @@ void Renderer::nanogui_init(GLFWwindow* window)
     gui->addButton("Rotate Front -", []() { n_rotate_zdown = true; })
         ->setTooltip("Testing a much longer tooltip.");
 
-
     gui->addGroup("Configuration");
 
     gui->addVariable("Z Near", nano_znear)->setSpinnable(true);
@@ -152,42 +174,41 @@ void Renderer::nanogui_init(GLFWwindow* window)
     // gui->addVariable("Model Name", nano_model_name);
     gui->addVariable("Model Name", nano_3dmodel, enabled)
         ->setItems({"BUCKY", "TEAPOT", "BONSAI", "HEAD"});
-    
+
     gui->addVariable("Render Type", nano_enum_render, enabled)
         ->setItems({"POINT", "LINE", "TRIANGLE"});
-    
+
     gui->addVariable("Cull Type", nano_enum_cull, enabled)->setItems({"CW", "CCW"});
-    
+
     gui->addButton("Reload model", []() { nano_reload_model = true; })
         ->setTooltip("Testing a much longer tooltip.");
-    
+
     gui->addButton("Reset Camera", []() { nano_reset = true; })
         ->setTooltip("Testing a much longer tooltip.");
 
-    
-    gui->addGroup("Volume Rendering");    
-    
+    gui->addGroup("Volume Rendering");
+
     gui->addVariable("Object Color", nano_col_val)->setFinalCallback([](const nanogui::Color &c) {
-        std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b()<< ", " << c.w() << "]" << std::endl;
+        std::cout << "ColorPicker Final Callback: [" << c.r() << ", " << c.g() << ", " << c.b() << ", " << c.w() << "]" << std::endl;
         nano_col_val = c;
     });
     gui->addVariable("Transfer Function Sign", nano_transfer_func_sign);
-    gui->addVariable("Sampling Rate", nano_sampling_rate); 
+    gui->addVariable("Sampling Rate", nano_sampling_rate);
 
     // ********************************************************************
 
     m_nanogui_screen->setVisible(true);
     m_nanogui_screen->performLayout();
 
-    glfwSetCursorPosCallback(window, [](GLFWwindow* window, double x, double y) {
+    glfwSetCursorPosCallback(window, [](GLFWwindow *window, double x, double y) {
         m_nanogui_screen->cursorPosCallbackEvent(x, y);
     });
 
-    glfwSetMouseButtonCallback(window, [](GLFWwindow*, int button, int action, int modifiers) {
+    glfwSetMouseButtonCallback(window, [](GLFWwindow *, int button, int action, int modifiers) {
         m_nanogui_screen->mouseButtonCallbackEvent(button, action, modifiers);
     });
 
-    glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+    glfwSetKeyCallback(window, [](GLFWwindow *window, int key, int scancode, int action, int mods) {
         if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
             glfwSetWindowShouldClose(window, GL_TRUE);
         if (key >= 0 && key < 1024)
@@ -199,25 +220,25 @@ void Renderer::nanogui_init(GLFWwindow* window)
         }
     });
 
-    glfwSetCharCallback(window, [](GLFWwindow*, unsigned int codepoint) {
+    glfwSetCharCallback(window, [](GLFWwindow *, unsigned int codepoint) {
         m_nanogui_screen->charCallbackEvent(codepoint);
     });
 
-    glfwSetDropCallback(window, [](GLFWwindow*, int count, const char** filenames) {
+    glfwSetDropCallback(window, [](GLFWwindow *, int count, const char **filenames) {
         m_nanogui_screen->dropCallbackEvent(count, filenames);
     });
 
-    glfwSetScrollCallback(window, [](GLFWwindow*, double x, double y) {
+    glfwSetScrollCallback(window, [](GLFWwindow *, double x, double y) {
         m_nanogui_screen->scrollCallbackEvent(x, y);
         // m_camera->ProcessMouseScroll(y);
     });
 
-    glfwSetFramebufferSizeCallback(window, [](GLFWwindow*, int width, int height) {
+    glfwSetFramebufferSizeCallback(window, [](GLFWwindow *, int width, int height) {
         m_nanogui_screen->resizeCallbackEvent(width, height);
     });
 }
 
-void Renderer::display(GLFWwindow* window)
+void Renderer::display(GLFWwindow *window)
 {
     Shader m_shader = Shader("../src/shader/volrender.vert", "../src/shader/volrender.frag");
 
@@ -237,17 +258,23 @@ void Renderer::display(GLFWwindow* window)
         {
             scene_reset();
             std::cout << "\n[DebugLog] Scene has been reset!\n";
-            is_scene_reset = false;  // just a safety check!
+            is_scene_reset = false; // just a safety check!
             nano_reload_model = false;
             nano_reset = false;
         }
 
         camera_move();
 
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_3D, cur_obj_ptr->texture3dID);
+
         m_shader.use();
 
         // std::cout << "\n[DebugLog] Setting up uniform values\n";
         setup_uniform_values(m_shader);
+
+        // Perform View Slicing and populate the vao.
+        view_slicing_simple();
 
         // std::cout << "\n[DebugLog] Drawing the scene!\n";
         draw_scene(m_shader);
@@ -282,41 +309,33 @@ void Renderer::load_models()
     {
         model_name = obj_path + nano_model_name;
         std::cout << "\n[DebugLog] NanoObjPath: " << obj_path << nano_model_name;
-        std::cout << "\n[DebugLog] Final Model Name: \n" << model_name;
+        std::cout << "\n[DebugLog] Final Model Name: \n"
+                  << model_name;
     }
-    cur_obj_ptr = new Object(model_name);
 
-    // Object model(model_name);
-    glGenVertexArrays(1, &(cur_obj_ptr->vao));  // public member
+    cur_obj_ptr = new Object(model_name);
+    const int max_slices = 5000;
+    std::vector<glm::vec3> tmp(5000);
+
+    glGenVertexArrays(1, &(cur_obj_ptr->vao)); // public member
     glGenBuffers(1, &(cur_obj_ptr->vbo));
     glGenBuffers(1, &(cur_obj_ptr->ebo));
 
     // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute
     // pointer(s).
-    glBindVertexArray(cur_obj_ptr->vao);  // model.vao);
-    // and then a bit of how the cube code works?
+    glBindVertexArray(cur_obj_ptr->vao); // model.vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);  // model.vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Object::Vertex) * cur_obj_ptr->vao_vertices.size(),
-                 &(cur_obj_ptr->vao_vertices[0]), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cur_obj_ptr->ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * cur_obj_ptr->veo_indices.size(),
-                 &(cur_obj_ptr->veo_indices[0]), GL_STATIC_DRAW);
-
+    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo); // model.vbo);
+    // Fill glBufferData with zeros initially
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * tmp.size(), 0, GL_DYNAMIC_DRAW);
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
     glEnableVertexAttribArray(0);
-    // Texture attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat),
-                          (GLvoid*)(3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);
+    // Texture coords calculated on the fly in vertex shader
+    glBindVertexArray(0); // Unbind VAO
 
-    glBindVertexArray(0);  // Unbind VAO
-
-    // Texture Loading 
+    // Texture Loading
     cur_obj_ptr->texture3dID = cur_obj_ptr->load3dTexture(nano_3dmodel);
-
 
     /*
      * TODO: You can also set Camera parameters here
@@ -329,7 +348,7 @@ void Renderer::load_models()
     nanogui_init(this->m_window);
 }
 
-void Renderer::draw_scene(Shader& shader)
+void Renderer::draw_scene(Shader &shader)
 {
     /*
      * TODO: Remember to enable GL_DEPTH_TEST and GL_CULL_FACE
@@ -338,6 +357,8 @@ void Renderer::draw_scene(Shader& shader)
     glPointSize(4.0f);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
+
+    glEnable(GL_ALPHA_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -358,9 +379,10 @@ void Renderer::draw_scene(Shader& shader)
      * TODO: Draw object
      */
     draw_object(shader, *cur_obj_ptr);
+    glDisable(GL_BLEND);
 }
 
-void Renderer::draw_object(Shader& shader, Object& object)
+void Renderer::draw_object(Shader &shader, Object &object)
 {
     /*
      * TODO: Draw object
@@ -383,17 +405,17 @@ void Renderer::draw_object(Shader& shader, Object& object)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         our_mode = GL_POINTS;
     }
-    glDrawArrays(our_mode, 0, object.vao_vertices.size());
-    // glDrawElements(our_mode, object.vao_vertices.size(), GL_UNSIGNED_INT, 0);
+
+    glDrawArrays(our_mode, 0, object.vao_points.size());
 
     // Reset back Polygon Mode to GL_FILL so as to not mess up the Nano GUI.
     // Otherwise it just make everything in the GUI to be in lineframe mode.
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    glBindVertexArray(0);  // unbind vao.
+    glBindVertexArray(0); // unbind vao.
 }
 
-void Renderer::setup_uniform_values(Shader& shader)
+void Renderer::setup_uniform_values(Shader &shader)
 {
     /*
      * TODO: Define uniforms for your shader
@@ -441,8 +463,10 @@ void Renderer::camera_move()
 
     // Change camera FOV or Zoom
     // Extra part!
-    if (nano_fov < 1.0f)  nano_fov = 1.0f;
-    if (nano_fov > 75.0f) nano_fov = 75.0f;
+    if (nano_fov < 1.0f)
+        nano_fov = 1.0f;
+    if (nano_fov > 75.0f)
+        nano_fov = 75.0f;
     m_camera->zoom = nano_fov;
 
     // Camera controls
@@ -507,4 +531,206 @@ void Renderer::camera_move()
     nano_campos_x = m_camera->position[0];
     nano_campos_y = m_camera->position[1];
     nano_campos_z = m_camera->position[2];
+}
+
+void Renderer::view_slicing_simple()
+{   
+    const int max_slices = 5000;
+    glm::vec3 vTextureSlices[max_slices * 12];
+    int num_slices = nano_sampling_rate;
+    int edges[12][2];
+    glm::vec3 vertexList[8];
+    for (int i = 0; i < 8; i += 3)
+    {
+        vertexList[i] = glm::vec3(cube_vertices[i], cube_vertices[i + 1], cube_vertices[i + 2]);
+    }
+    for (int i = 0; i < 12; i += 2)
+    {
+        edges[i][0] = cube_edges[i];
+        edges[i][1] = cube_edges[i + 1];
+    }
+
+    glm::vec3 viewDir = m_camera->front + m_camera->position;
+    const float EPSILON = 1e-6;
+
+    float max_dist = glm::dot(viewDir, vertexList[0]);
+    float min_dist = max_dist;
+    int max_index = 0;
+    int count = 0;
+    for (int i = 1; i < 8; i++)
+    {
+        float dist = glm::dot(viewDir, vertexList[i]);
+        if (dist > max_dist)
+        {
+            max_dist = dist;
+            max_index = i;
+        }
+        if (dist < min_dist)
+            min_dist = dist;
+    }
+    // int max_dim = FindAbsMax(viewDir);
+    min_dist -= EPSILON;
+    max_dist += EPSILON;
+
+    int edgeList[8][12] = {
+        {0, 1, 5, 6, 4, 8, 11, 9, 3, 7, 2, 10}, //v0 is front
+        {0, 4, 3, 11, 1, 2, 6, 7, 5, 9, 8, 10}, //v1 is front
+        {1, 5, 0, 8, 2, 3, 7, 4, 6, 10, 9, 11}, //v2 is front
+        {7, 11, 10, 8, 2, 6, 1, 9, 3, 0, 4, 5}, // v3 is front
+        {8, 5, 9, 1, 11, 10, 7, 6, 4, 3, 0, 2}, // v4 is front
+        {9, 6, 10, 2, 8, 11, 4, 7, 5, 0, 1, 3}, // v5 is front
+        {9, 8, 5, 4, 6, 1, 2, 0, 10, 7, 11, 3}, // v6 is front
+        {10, 9, 6, 5, 7, 2, 3, 1, 11, 4, 8, 0}  // v7 is front
+    };
+
+    glm::vec3 vecStart[12];
+    glm::vec3 vecDir[12];
+    float lambda[12];
+    float lambda_inc[12];
+    float denom = 0;
+    float plane_dist = min_dist;
+    float plane_dist_inc = (max_dist - min_dist) / float(num_slices);
+
+    for (int i = 0; i < 12; i++)
+    {
+        int edge_number = edgeList[max_index][i];
+        vecStart[i] = vertexList[edges[edge_number][0]];
+        vecDir[i] = vertexList[edges[edge_number][1]] - vecStart[i];
+        denom = glm::dot(vecDir[i], viewDir);
+
+        if (1.0 + denom != 1.0)
+        {
+            lambda_inc[i] = plane_dist_inc / denom;
+            lambda[i] = (plane_dist - glm::dot(vecStart[i], viewDir)) / denom;
+        }
+        else
+        {
+            lambda[i] = -1.0;
+            lambda_inc[i] = 0.0;
+        }
+    }
+
+    glm::vec3 intersection[6];
+    float dL[12];
+    for (int i = num_slices - 1; i >= 0; i--)
+    {
+        for (int e = 0; e < 12; e++)
+        {
+            dL[e] = lambda[e] + i * lambda_inc[e];
+        }
+
+        if ((dL[0] >= 0.0) && (dL[0] < 1.0))
+        {
+            intersection[0] = vecStart[0] + dL[0] * vecDir[0];
+        }
+        else if ((dL[1] >= 0.0) && (dL[1] < 1.0))
+        {
+            intersection[0] = vecStart[1] + dL[1] * vecDir[1];
+        }
+        else if ((dL[3] >= 0.0) && (dL[3] < 1.0))
+        {
+            intersection[0] = vecStart[3] + dL[3] * vecDir[3];
+        }
+        else continue;
+
+        if ((dL[2] >= 0.0) && (dL[2] < 1.0))
+        {
+            intersection[1] = vecStart[2] + dL[2] * vecDir[2];
+        }
+        else if ((dL[0] >= 0.0) && (dL[0] < 1.0))
+        {
+            intersection[1] = vecStart[0] + dL[0] * vecDir[0];
+        }
+        else if ((dL[1] >= 0.0) && (dL[1] < 1.0))
+        {
+            intersection[1] = vecStart[1] + dL[1] * vecDir[1];
+        }
+        else
+        {
+            intersection[1] = vecStart[3] + dL[3] * vecDir[3];
+        }
+
+
+        if ((dL[2] >= 0.0) && (dL[2] < 1.0))
+        {
+            intersection[1] = vecStart[2] + dL[2] * vecDir[2];
+        }
+        else if ((dL[0] >= 0.0) && (dL[0] < 1.0))
+        {
+            intersection[1] = vecStart[0] + dL[0] * vecDir[0];
+        }
+        else if ((dL[1] >= 0.0) && (dL[1] < 1.0))
+        {
+            intersection[1] = vecStart[1] + dL[1] * vecDir[1];
+        }
+        else
+        {
+            intersection[1] = vecStart[3] + dL[3] * vecDir[3];
+        }
+
+
+        //similarly for others edges unitl intersection[5]
+        int indices[] = {0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5};
+        for (int j = 0; j < 12; j++) {
+            vTextureSlices[count++] = intersection[indices[j]];
+        }
+    }
+    
+    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vTextureSlices), &(vTextureSlices[0].x));
+}
+
+std::vector<glm::vec3> get_vertices_simple(float zval)
+{
+    std::vector<glm::vec3> verts;
+    // glm::vec3 p1(0.0, 0.0, zval);
+    // glm::vec3 p2(0.0, 1.0, zval);
+    // glm::vec3 p3(1.0, 1.0, zval);
+    // glm::vec3 p4(1.0, 0.0, zval);
+    // glm::vec3 p5(0.5, 0.5, zval);
+
+    verts.push_back(glm::vec3(0.0, 0.0, zval));
+    verts.push_back(glm::vec3(0.0, 1.0, zval));
+    verts.push_back(glm::vec3(1.0, 1.0, zval));
+    verts.push_back(glm::vec3(1.0, 0.0, zval));
+    verts.push_back(glm::vec3(0.5, 0.5, zval));
+
+    // 12 vertices total for the 4 triangles
+    std::vector<glm::vec3> face_vert;
+
+    for (int i = 3; i >= 0; i--)
+    {
+        int tmp_idx;
+        if (i == 0)
+        {
+            tmp_idx = 3;
+        }
+        else
+        {
+            tmp_idx = i - 1;
+        }
+        face_vert.push_back(verts[4]);
+        face_vert.push_back(verts[tmp_idx]);
+        face_vert.push_back(verts[i]);
+    }
+    return face_vert;
+}
+
+void Renderer::_view_slicing_simple()
+{
+    std::vector<glm::vec3> vertSlices;
+    int num_samples = nano_sampling_rate;
+    float delta = 1.0f / num_samples;
+
+    for (int i = num_samples; i > 0; i--)
+    {
+        float zval = 0.0f + i * delta;
+        std::vector<glm::vec3> tmp = get_vertices_simple(zval);
+        vertSlices.insert(vertSlices.end(), tmp.begin(), tmp.end());
+    }
+
+    cur_obj_ptr->vao_points = vertSlices;
+
+    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vertSlices.size(), &(vertSlices[0].x));
 }
