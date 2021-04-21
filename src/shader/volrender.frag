@@ -8,7 +8,7 @@ out vec4 FragColor;
 uniform sampler3D ourTexture;
 
 void main() {    
-    // FragColor = ourColor;
-    float a = texture(ourTexture, TexCoord);
-    FragColor = a * ourColor;
+    FragColor = ourColor;
+    // float a = texture(ourTexture, TexCoord);
+    // FragColor = a * ourColor;
 }

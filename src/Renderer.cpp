@@ -8,6 +8,8 @@ Camera *Renderer::m_camera = new Camera();
 
 nanogui::Screen *Renderer::m_nanogui_screen = nullptr;
 
+bool k_show = true;
+
 // Pre-defined
 bool Renderer::keys[1024];
 enum render_type
@@ -160,8 +162,12 @@ std::vector<glm::vec3> sort_points(const std::vector<glm::vec3>& point_list, con
             }
         }
         seen_idxs.insert(min_idx);
-        // ordered_idxs.push_back(min_idx);
-        ordered_points.push_back(point_list[min_idx]);
+        ordered_idxs.push_back(min_idx);
+    }
+
+    for(const auto& v : ordered_idxs)
+    {
+        ordered_points.push_back(point_list[v]);
     }
     return ordered_points;
 }
@@ -180,6 +186,12 @@ std::vector<glm::vec3> get_ordered_points(const std::vector<glm::vec3>& point_li
     return sort_points(point_list, cos_angles);
 }
 
+bool is_valid_point(const glm::vec3& point)
+{   
+    // modern c++ lambda expression
+    auto valid_value = [](float value) { return (value >= 0.0f) && (value <= 1.0f); };
+    return (valid_value(point.x)) && (valid_value(point.y)) && (valid_value(point.z));
+}
 
 
 Renderer::Renderer() {}
@@ -449,9 +461,9 @@ void Renderer::draw_scene(Shader &shader)
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 
-    glEnable(GL_ALPHA_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glEnable(GL_ALPHA_TEST);
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     if (nano_enum_cull == CW)
     {
@@ -629,7 +641,9 @@ void Renderer::view_slicing()
     // View Matrix
     glm::mat4 view = glm::mat4(1.0f);
     view = m_camera->GetViewMatrix();
-    glm::vec3 viewDir(view[8], view[9], view[10]);
+    // float _viewdirX, _viewdirY, _viewdirZ;
+    // _viewdirX = view[2][0];
+    glm::vec3 viewDir(view[2][0], view[2][1], view[2][2]);
     glm::vec3 camPosn = m_camera->position;
 
     auto vertexList = cur_obj_ptr->ori_positions;
@@ -671,7 +685,24 @@ void Renderer::view_slicing()
             float coef = get_intersection_coef(plane_point, viewDir, edge_point, edge_direc);
             if(coef >= -1.0f * EPSILON) // just to be safe to include 0.0f as well
             {
-                glm::vec3 tmp_point = edge_point + coef * edge_direc;
+                glm::vec3 tmp_point;
+                if(abs(coef - 0.0f) < EPSILON){
+                    tmp_point = edge_point;
+                }
+                else
+                {
+                    tmp_point = edge_point + coef * edge_direc;
+                }
+                if(!is_valid_point(tmp_point))
+                {   
+                    std::cout << "  [DEBUG] point out of bounds!" << std::endl;
+                    cur_obj_ptr->print_glmvec3(tmp_point);
+                    exit(1);
+                }
+                // else
+                // {
+                //     cur_obj_ptr->print_glmvec3(tmp_point);
+                // }
                 intersection_points.push_back(tmp_point);
             }
         }
@@ -679,9 +710,17 @@ void Renderer::view_slicing()
         // Sort in counter clockwise order: order wrt angle with x-axis. 
         auto center = center_point(intersection_points);
         auto sorted_pts = get_ordered_points(intersection_points, center);
+        // auto sorted_pts = intersection_points;
         // Tesselate it and store in the vector for VAO points.        
         for(int i = 0; i < sorted_pts.size(); i++)
         {
+            // if(k_show)
+            // {
+            //     std::cout << "face: ";
+            //     cur_obj_ptr->print_glmvec3(sorted_pts[i]);
+            //     slice_vao_vertices.push_back(center);
+            // }
+
             // p(i), center, p(i+1)
             slice_vao_vertices.push_back(sorted_pts[i]);
             slice_vao_vertices.push_back(center);
@@ -695,9 +734,10 @@ void Renderer::view_slicing()
             }
         }
     }
-    std::cout << "[DEBUG] Slicing VAO vertices size: " << slice_vao_vertices.size() << std::endl;
+    // std::cout << "[DEBUG] Slicing VAO vertices size: " << slice_vao_vertices.size() << std::endl;
     glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * slice_vao_vertices.size(), &(slice_vao_vertices.front()));
+    k_show = nano_transfer_func_sign;
 }
 
 

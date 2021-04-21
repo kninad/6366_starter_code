@@ -166,6 +166,7 @@ public:
     {
         this->m_obj_path = obj_path;
         load_obj(this->m_obj_path);
+        set_edges_parametric();
     };
 
     ~Object(){};
@@ -296,8 +297,6 @@ public:
             print_glmvec3(obj_center);
             std::cout << std::endl;
         }
-
-        set_edges_parametric();
     };
 
     GLuint load3dTexture(RawDataUtil::model3d_t model_type)
