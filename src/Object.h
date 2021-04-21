@@ -41,9 +41,9 @@ class Object
 
     glm::vec2 z_max = glm::vec2(0.0f, 0.0f);            // z coord for the vertices having max x and y values.
     glm::vec2 z_min = glm::vec2(0.0f, 0.0f);            // z coord for the vertices having min x and y values.
-    glm::vec3 obj_center = glm::vec3(0.0f, 0.0f, 0.0f); // UNUSED!
-    glm::vec3 max_bound = glm::vec3(INT_MIN);
-    glm::vec3 min_bound = glm::vec3(INT_MAX);
+    
+    glm::vec3 max_bound = glm::vec3(INT_MIN, INT_MIN, INT_MIN);
+    glm::vec3 min_bound = glm::vec3(INT_MAX, INT_MAX, INT_MAX);
     glm::vec3 center_cam_pos = glm::vec3(0.0f, 0.0f, 0.0f);
 
     glm::vec4 obj_color = glm::vec4(0.7, 0.7, 0.7, 1.0);
@@ -51,21 +51,21 @@ class Object
 
     GLuint vao, vbo, ebo;
     GLuint tex3dID;
-    // RawDataUtil::model3d_t model3d;
+    
 
  private:
 
     void add_vertex_from_face(const Face_Index& face)
-    {   
-        Vertex points[3];
+    {           
         const glm::vec3 k_FixedPosition(1.0,1.0,1.0);
         // Populate the position and texture information.
         for (int i = 0; i < 3; i++)
         {
+            Vertex point;
             int vert_idx = face.vertex[i];
-            points[i].Position = ori_positions[vert_idx];            
-            points[i].TexCoords = k_FixedPosition - points[i].Position;
-            vao_vertices.push_back(points[i]);
+            point.Position = ori_positions[vert_idx];
+            point.TexCoords = k_FixedPosition - point.Position;
+            vao_vertices.push_back(point);
         }
         // Can set and use edge info here ? or somewhere?
     }
@@ -78,8 +78,11 @@ class Object
         }
     }
 
-    void update_bounds(const glm::vec3 &point)
-    {
+    void update_bounds(const glm::vec3& point)
+    {   
+        // std::cout << "[DEBUG] POINT: ";
+        // print_glmvec3(point);
+
         // X coordinates
         if (point[0] > max_bound[0])
         {
@@ -163,10 +166,23 @@ class Object
 
     ~Object(){};
 
+    void print_glmvec3(const glm::vec3& vec)
+    {
+        std::cout << "\nVec3: ";
+        for(int i=0; i<3; i++)
+        {
+            std::cout << vec[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+
     void update_center_camera_position(float fov = 45.0f)
     {
         center_cam_pos[0] = (max_bound[0] + min_bound[0]) / 2.0f; // X center
+        std::cout << "[DEBUG] Cx " << center_cam_pos[0] << std::endl;
         center_cam_pos[1] = (max_bound[1] + min_bound[1]) / 2.0f; // Y center
+        std::cout << "[DEBUG] Cy " << center_cam_pos[1] << std::endl;
+
         // Z coord -- Trignometry skills
         float tan_fov_by2 = (float)glm::tan(glm::radians(fov) / 2);
         float x_range = max_bound[0] - min_bound[0];
@@ -208,12 +224,40 @@ class Object
         }
 
         // Retrieve data from index and assign to vao and veo
-        for(int i = 0; i < indexed_faces.size(); i++)
+        // for(int i = 0; i < indexed_faces.size(); i++)
+        // {
+        //     // populate vao_vertices 
+        //     add_vertex_from_face(indexed_faces[i]);
+        //     // pop veo indices
+        //     add_face_to_veo(indexed_faces[i]);            
+        // }
+
+        for(const auto& pos : ori_positions)
         {
-            // populate vao_vertices and veo_indices
-            add_vertex_from_face(indexed_faces[i]);
-            add_face_to_veo(indexed_faces[i]);
+            Vertex point;
+            point.Position = pos;
+            point.TexCoords = glm::vec3(1.0,1.0,1.0) - pos;
+            vao_vertices.push_back(point);
         }
+        
+        // populate veo_indices
+        for(int i = 0; i < 36; i++)
+        {
+            veo_indices.push_back(cube_indices[i]);
+        }
+
+        // for(const auto &p : vao_vertices)
+        // {
+        //     print_glmvec3(p.Position);
+        //     print_glmvec3(p.TexCoords);
+        // }
+
+        update_center_camera_position();           // use default fov of 45
+        std::cout << "\n\n [DebugLog] Cent Pos: ";
+        print_glmvec3(center_cam_pos);
+        print_glmvec3(max_bound);
+        print_glmvec3(min_bound);
+        std::cout << std::endl;
     }
 
     GLuint load3dTexture(RawDataUtil::model3d_t model_type)

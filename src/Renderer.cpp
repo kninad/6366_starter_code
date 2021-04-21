@@ -62,36 +62,6 @@ int nano_sampling_rate = 100;
 bool nano_reload_model = true;
 bool nano_reset = false;
 
-
-
-// // Second Nano GUI Global Vars (Lighting)
-// bool n_pLight_reset = false; // Reset dynamic point light?
-
-// bool n_pLight_rotX = false;
-// bool n_pLight_rotY = false;
-// bool n_pLight_rotZ = false;
-
-// bool n_on_dirL = false;
-// nanogui::Color n_dirL_amb(0.05f, 0.05f, 0.05f, 1.0f);
-// nanogui::Color n_dirL_dif(0.05f, 0.05f, 0.05f, 1.0f);
-// nanogui::Color n_dirL_spc(0.05f, 0.05f, 0.05f, 1.0f);
-
-// bool n_on_posL = false;
-// nanogui::Color n_posL_amb(0.05f, 0.05f, 0.05f, 1.0f);
-// nanogui::Color n_posL_dif(0.05f, 0.05f, 0.05f, 1.0f);
-// nanogui::Color n_posL_spc(0.05f, 0.05f, 0.05f, 1.0f);
-
-// bool n_on_diffuseTex = false;
-// bool n_on_normalTex = false;
-
-/*
- * TODO: Remeber to use these variables
- */
-// render_type render_val = LINE;
-// culling_type culling_val = CW;
-// shading_type shading_val = SMOOTH;
-// depth_type depth_val = LESS;
-
 Renderer::Renderer() {}
 
 Renderer::~Renderer() {}
@@ -272,8 +242,8 @@ void Renderer::display(GLFWwindow *window)
         camera_move();
 
         // Textures
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_3D, cur_obj_ptr->tex3dID);
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_3D, cur_obj_ptr->tex3dID);
 
         m_shader.use();
 
@@ -330,20 +300,22 @@ void Renderer::load_models()
     // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid *)0);
     glEnableVertexAttribArray(0);
-
-    // 3D Texture attribute
+    // Texture (3D) attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid *)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0); // Unbind VAO
+    // Unbind VAO
+    glBindVertexArray(0);
     
     // Texture Loading 
-    cur_obj_ptr->tex3dID = cur_obj_ptr->load3dTexture(nano_3dmodel);
+    // cur_obj_ptr->tex3dID = cur_obj_ptr->load3dTexture(nano_3dmodel);
 
     /*
      * Set Camera parameters here
      */
     m_camera->model_center_position = cur_obj_ptr->center_cam_pos;
+    std::cout << "[DEBUG] Camera Position: ";
+    cur_obj_ptr->print_glmvec3(cur_obj_ptr->center_cam_pos) ;
+
     // Sane default for camera position options in nano gui
     nano_campos_x = cur_obj_ptr->center_cam_pos[0];
     nano_campos_y = cur_obj_ptr->center_cam_pos[1];
@@ -405,8 +377,8 @@ void Renderer::draw_object(Shader &shader, Object &object)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         our_mode = GL_POINTS;
     }
-    glDrawArrays(our_mode, 0, object.vao_vertices.size());
-    // glDrawElements(our_mode, object.vao_vertices.size(), GL_UNSIGNED_INT, 0);
+    // glDrawArrays(our_mode, 0, object.vao_vertices.size());    
+    glDrawElements(our_mode, 36, GL_UNSIGNED_INT, 0);
 
     // Reset back Polygon Mode to GL_FILL so as to not mess up the Nano GUI.
     // Otherwise it just make everything in the GUI to be in lineframe mode.
@@ -433,11 +405,8 @@ void Renderer::setup_uniform_values(Shader &shader)
     glm::mat4 projection = glm::mat4(1.0f);
     projection = glm::perspective(glm::radians(m_camera->zoom), aspect_ratio, nano_znear, nano_zfar);
 
-    // glm::vec3 custom_color = glm::vec3(nano_col_val[0], nano_col_val[1], nano_col_val[2]);
-    glm::vec3 custom_color = glm::vec3(1.0f, 1.0f, 1.0f);
-
-    // Set the values of Lightings object from Nanogui Controls
-    // m_lightings->direction_light.direction = glm::vec3(glm::inverse(view) * glm::vec4(CCS_lightDir, 0.0f));
+    glm::vec3 custom_color = glm::vec3(nano_col_val[0], nano_col_val[1], nano_col_val[2]);
+    // glm::vec3 custom_color = glm::vec3(1.0f, 1.0f, 1.0f);
 
     // Set in shader program
     // Uniforms for GLSL: halfway -- ab
@@ -450,9 +419,9 @@ void Renderer::setup_uniform_values(Shader &shader)
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
     unsigned int objcolLoc = glGetUniformLocation(shader.program, "object_color");
-    unsigned int camposLoc = glGetUniformLocation(shader.program, "view_position");
     glUniform3fv(objcolLoc, 1, glm::value_ptr(custom_color));
-    glUniform3fv(camposLoc, 1, glm::value_ptr(m_camera->position));
+    // unsigned int camposLoc = glGetUniformLocation(shader.program, "view_position");
+    // glUniform3fv(camposLoc, 1, glm::value_ptr(m_camera->position));
 
     // Textures
     // unsigned int ourTextureLoc = glGetUniformLocation(shader.program, "ourTexture");
