@@ -387,7 +387,7 @@ void Renderer::draw_scene(Shader &shader)
     glCullFace(GL_BACK);
 
     glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER, 0.06f);
+    glAlphaFunc(GL_GREATER, 0.01f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
