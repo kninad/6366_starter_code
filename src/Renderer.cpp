@@ -96,124 +96,8 @@ GLuint cube_edges[24] = {
     4, 5,
     6, 7};
 
-// Returns the coefficient in the line equation. For us (in cube), it has to be bounded
-// between 0 and 1 (inclusive). So if its out of range, we return -1.0.
-float get_intersection_coef(glm::vec3 plane_point, glm::vec3 normal, glm::vec3 line_point, glm::vec3 line_dir)
-{
-    // Plane Line Intersection
-    // Plane: (point - plane_point) * n = 0
-    // Line: point = line_point + (lambda) line_dir.
-    // Need to find lambda (float)
-    float numerator = glm::dot((plane_point - line_point), normal);
-    float denom = glm::dot(line_dir, normal);
-    float coef = -1.0f; // good default value
-    if (glm::abs(denom) < EPSILON)
-    {
-        // parallel plane and line
-        if (glm::abs(numerator) < EPSILON)
-        {
-            return 0.0f;
-        }
-        else
-        {
-            return -1.0f;
-        }
-    }
-    else
-    {
-        coef = numerator / denom;
-        if ((coef >= 0.0f - EPSILON) && (coef <= 1.0f + EPSILON)) // out of range!
-        {
-            return coef;
-        }
-        else
-        {
-            return -1.0f;
-        }
-    }
-    return coef;
-}
-
-// Returns the center point for a polygon
-glm::vec3 center_point(const std::vector<glm::vec3> &point_list)
-{
-    glm::vec3 avg(0, 0, 0);
-    for (const auto &p : point_list)
-    {
-        avg += p;
-    }
-    avg /= point_list.size();
-    return avg;
-}
-
-// Hacky and non optimal way to do sorting O(n^2)-- bUT n = 6 for us.
-std::vector<glm::vec3> sort_points(const std::vector<glm::vec3> &point_list, const std::vector<float> &angles)
-{
-    std::unordered_set<int> seen_idxs;
-    std::vector<int> ordered_idxs;
-    std::vector<glm::vec3> ordered_points;
-    for (int j = 0; j < point_list.size(); j++)
-    {
-        int min_idx;
-        float min_val = INT_MAX;
-        for (int i = 0; i < point_list.size(); i++)
-        {
-            if (seen_idxs.count(i) == 0)
-            {
-                if (angles[i] < min_val)
-                {
-                    min_val = angles[i];
-                    min_idx = i;
-                }
-            }
-        }
-        seen_idxs.insert(min_idx);
-        ordered_idxs.push_back(min_idx);
-    }
-
-    for (const auto &v : ordered_idxs)
-    {
-        ordered_points.push_back(point_list[v]);
-    }
-    return ordered_points;
-}
-
-// Returns a new vector of points in sorted order wrt center
-std::vector<glm::vec3> get_ordered_points(const std::vector<glm::vec3> &point_list, const glm::vec3 &center)
-{
-    std::vector<float> cos_angles;
-    glm::vec3 fixed_vec(1.0, 0.0, 0.0); // For reference angle (X - axis)
-    for (const auto &p : point_list)
-    {
-        float dot_prod = glm::dot(fixed_vec, glm::normalize(p - center));
-        cos_angles.push_back(dot_prod);
-    }
-    // Now Sort and get ordered points.
-    return sort_points(point_list, cos_angles);
-}
-
-bool valid_value(float value)
-{
-    return (value >= 0.0f) && (value <= 1.0f);
-}
-
-bool is_valid_point(const glm::vec3 &point)
-{
-    return (valid_value(point.x)) && (valid_value(point.y)) && (valid_value(point.z));
-}
 
 
-glm::vec3 transform_pos(const glm::mat4& model_mat, const glm::mat4& view_mat, const glm::vec3& pos)
-{
-    auto tmp_vec = view_mat * model_mat * glm::vec4(pos, 1.0);
-    return glm::vec3(tmp_vec.x, tmp_vec.y, tmp_vec.z);
-}
-
-glm::vec3 transform_dir(const glm::mat4& model_mat, const glm::mat4& view_mat, const glm::vec3& dir)
-{
-    auto tmp_vec = view_mat * model_mat * glm::vec4(dir, 0.0);
-    return glm::vec3(tmp_vec.x, tmp_vec.y, tmp_vec.z);
-}
 
 
 Renderer::Renderer() {}
@@ -690,7 +574,7 @@ void Renderer::view_slicing()
     max_dist += EPSILON;
     float delta = (max_dist - min_dist) / nano_sampling_rate;
     float start_lamb = min_dist;
-    // cur_obj_ptr->print_glmvec3(viewDir);
+    Utils::print_glmvec3(viewDir);
     // std::cout << "[debug params] " << min_dist << " " << max_dist << " " << delta << std::endl;
 
     // Max 6 intersection points per slicing plane
@@ -707,12 +591,12 @@ void Renderer::view_slicing()
             glm::vec3 edge_direc = cur_obj_ptr->edges_parametric[j][1];
 
             // std::cout << "[DEBUG] ";
-            // cur_obj_ptr->print_glmvec3(plane_point);
-            // cur_obj_ptr->print_glmvec3(viewDir);
-            // cur_obj_ptr->print_glmvec3(edge_point);
-            // cur_obj_ptr->print_glmvec3(edge_direc);
+            // Utils::print_glmvec3(plane_point);
+            // Utils::print_glmvec3(viewDir);
+            // Utils::print_glmvec3(edge_point);
+            // Utils::print_glmvec3(edge_direc);
 
-            float coef = get_intersection_coef(plane_point, viewDir, edge_point, edge_direc);
+            float coef = Utils::get_intersection_coef(plane_point, viewDir, edge_point, edge_direc);
             if (coef >= -1.0f * EPSILON) // just to be safe to include 0.0f as well
             {
                 glm::vec3 tmp_point;
@@ -725,25 +609,25 @@ void Renderer::view_slicing()
                 {
                     tmp_point = edge_point + coef * edge_direc;
                     std::cout << "[debug] Valid coef " << coef;
-                    cur_obj_ptr->print_glmvec3(tmp_point);
+                    Utils::print_glmvec3(tmp_point);
                 }
-                if (!is_valid_point(tmp_point))
+                if (!Utils::is_valid_point(tmp_point))
                 {
                     std::cout << "[DEBUG] point out of bounds! Coef: " << coef;
-                    cur_obj_ptr->print_glmvec3(tmp_point);
+                    Utils::print_glmvec3(tmp_point);
                     exit(1);
                 }
                 // else
                 // {
-                //     cur_obj_ptr->print_glmvec3(tmp_point);
+                //     Utils::print_glmvec3(tmp_point);
                 // }
                 intersection_points.push_back(tmp_point);
             }
         }
         // Obtained a polygon in intersection_points
         // Sort in counter clockwise order: order wrt angle with x-axis.
-        auto center = center_point(intersection_points);
-        auto sorted_pts = get_ordered_points(intersection_points, center);
+        auto center = Utils::center_point(intersection_points);
+        auto sorted_pts = Utils::get_ordered_points(intersection_points, center);
         // auto sorted_pts = intersection_points;
         // Tesselate it and store in the vector for VAO points.
         for (int i = 0; i < sorted_pts.size(); i++)
@@ -751,7 +635,7 @@ void Renderer::view_slicing()
             // if(k_show)
             // {
             //     std::cout << "face: ";
-            //     cur_obj_ptr->print_glmvec3(sorted_pts[i]);
+            //     Utils::print_glmvec3(sorted_pts[i]);
             //     slice_vao_vertices.push_back(center);
             // }
 
@@ -787,16 +671,16 @@ std::vector<glm::vec3> get_vertices_simple(float zval)
 
 void Renderer::simple_slice()
 {
-    // testing transformations:
-    // Model matrix.
-    glm::mat4 model_mat = glm::mat4(1.0f);
-    // View Matrix
-    glm::mat4 view_mat = glm::mat4(1.0f);
-    view_mat = m_camera->GetViewMatrix();
-    std::cout << "NEW DIR: ";
-    cur_obj_ptr->print_glmvec3(transform_dir(model_mat, view_mat, glm::vec3(0, 0, 1)));
-    std::cout << "NEW POS: ";
-    cur_obj_ptr->print_glmvec3(transform_pos(model_mat, view_mat, m_camera->position));
+    // // testing transformations:
+    // // Model matrix.
+    // glm::mat4 model_mat = glm::mat4(1.0f);
+    // // View Matrix
+    // glm::mat4 view_mat = glm::mat4(1.0f);
+    // view_mat = m_camera->GetViewMatrix();
+    // std::cout << "NEW DIR: ";
+    // Utils::print_glmvec3(Utils::transform_dir(model_mat, view_mat, glm::vec3(0, 0, 1)));
+    // std::cout << "NEW POS: ";
+    // Utils::print_glmvec3(Utils::transform_pos(model_mat, view_mat, m_camera->position));
 
     std::vector<glm::vec3> vertSlices;
     std::vector<uint> veo_idxs;
