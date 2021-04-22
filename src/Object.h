@@ -11,7 +11,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "RawData.h"
+#include "Utils.h"
 
 class Object
 {
@@ -299,17 +299,17 @@ public:
         }
     };
 
-    GLuint load3dTexture(RawDataUtil::model3d_t model_type)
+    GLuint load3dTexture(Utils::model3d_t model_type)
     {
         GLuint textureID;
         glGenTextures(1, &textureID);
 
-        GLubyte *data = RawDataUtil::load_3Dfrom_type(model_type);
+        GLubyte *data = Utils::load_3Dfrom_type(model_type);
         if (!data)
         {
             std::cout << "Raw Data Model Loading failed! " << std::endl;
         }
-        glm::vec3 dims = RawDataUtil::get_dims(model_type);
+        glm::vec3 dims = Utils::get_dims(model_type);
         glBindTexture(GL_TEXTURE_3D, textureID);
         glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, dims[0], dims[1], dims[2], 0, GL_RED, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_3D);

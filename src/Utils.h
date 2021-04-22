@@ -8,7 +8,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
-namespace RawDataUtil {
+namespace Utils {
  
     enum model3d_t {
         BUCKY,

@@ -54,7 +54,7 @@ bool n_rotate_zdown = false;
 
 render_type nano_enum_render = TRIANGLE;
 culling_type nano_enum_cull = CCW;
-RawDataUtil::model3d_t nano_3dmodel = RawDataUtil::TEAPOT;
+Utils::model3d_t nano_3dmodel = Utils::TEAPOT;
 
 nanogui::Color nano_col_val(0.10f, 0.4f, 0.8f, 1.0f);
 bool nano_transfer_func_sign = false;
@@ -201,6 +201,20 @@ bool is_valid_point(const glm::vec3 &point)
 {
     return (valid_value(point.x)) && (valid_value(point.y)) && (valid_value(point.z));
 }
+
+
+glm::vec3 transform_pos(const glm::mat4& model_mat, const glm::mat4& view_mat, const glm::vec3& pos)
+{
+    auto tmp_vec = view_mat * model_mat * glm::vec4(pos, 1.0);
+    return glm::vec3(tmp_vec.x, tmp_vec.y, tmp_vec.z);
+}
+
+glm::vec3 transform_dir(const glm::mat4& model_mat, const glm::mat4& view_mat, const glm::vec3& dir)
+{
+    auto tmp_vec = view_mat * model_mat * glm::vec4(dir, 0.0);
+    return glm::vec3(tmp_vec.x, tmp_vec.y, tmp_vec.z);
+}
+
 
 Renderer::Renderer() {}
 
@@ -773,6 +787,17 @@ std::vector<glm::vec3> get_vertices_simple(float zval)
 
 void Renderer::simple_slice()
 {
+    // testing transformations:
+    // Model matrix.
+    glm::mat4 model_mat = glm::mat4(1.0f);
+    // View Matrix
+    glm::mat4 view_mat = glm::mat4(1.0f);
+    view_mat = m_camera->GetViewMatrix();
+    std::cout << "NEW DIR: ";
+    cur_obj_ptr->print_glmvec3(transform_dir(model_mat, view_mat, glm::vec3(0, 0, 1)));
+    std::cout << "NEW POS: ";
+    cur_obj_ptr->print_glmvec3(transform_pos(model_mat, view_mat, m_camera->position));
+
     std::vector<glm::vec3> vertSlices;
     std::vector<uint> veo_idxs;
     int num_samples = nano_sampling_rate;
