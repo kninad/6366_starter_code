@@ -1,5 +1,4 @@
 #include "Renderer.h"
-#include <cmath>
 #include <unordered_set>
 
 const float EPSILON = 1e-6;
@@ -107,32 +106,39 @@ float get_intersection_coef(glm::vec3 plane_point, glm::vec3 normal, glm::vec3 l
     // Need to find lambda (float)
     float numerator = glm::dot((plane_point - line_point), normal);
     float denom = glm::dot(line_dir, normal);
-    float coef;
-    if (abs(denom) < EPSILON)
+    float coef = -1.0f; // good default value
+    if (glm::abs(denom) < EPSILON)
     {
         // parallel plane and line
-        if (abs(numerator) < EPSILON)
+        if (glm::abs(numerator) < EPSILON)
         {
-            coef = 0.0f;
+            return 0.0f;
+        }
+        else
+        {
+            return -1.0f;
         }
     }
     else
     {
         coef = numerator / denom;
-        if(coef < 0.0f || coef > 1.0f) // out of range!
+        if ((coef >= 0.0f - EPSILON) && (coef <= 1.0f + EPSILON)) // out of range!
         {
-            coef = -1.0f;
+            return coef;
+        }
+        else
+        {
+            return -1.0f;
         }
     }
-
     return coef;
 }
 
 // Returns the center point for a polygon
-glm::vec3 center_point(const std::vector<glm::vec3>& point_list)
+glm::vec3 center_point(const std::vector<glm::vec3> &point_list)
 {
-    glm::vec3 avg(0,0,0);
-    for(const auto& p : point_list)
+    glm::vec3 avg(0, 0, 0);
+    for (const auto &p : point_list)
     {
         avg += p;
     }
@@ -141,20 +147,20 @@ glm::vec3 center_point(const std::vector<glm::vec3>& point_list)
 }
 
 // Hacky and non optimal way to do sorting O(n^2)-- bUT n = 6 for us.
-std::vector<glm::vec3> sort_points(const std::vector<glm::vec3>& point_list, const std::vector<float>& angles)
+std::vector<glm::vec3> sort_points(const std::vector<glm::vec3> &point_list, const std::vector<float> &angles)
 {
     std::unordered_set<int> seen_idxs;
     std::vector<int> ordered_idxs;
     std::vector<glm::vec3> ordered_points;
-    for(int j = 0; j < point_list.size(); j++)
+    for (int j = 0; j < point_list.size(); j++)
     {
         int min_idx;
         float min_val = INT_MAX;
-        for(int i = 0; i < point_list.size(); i++)
+        for (int i = 0; i < point_list.size(); i++)
         {
-            if(seen_idxs.count(i) == 0)
+            if (seen_idxs.count(i) == 0)
             {
-                if(angles[i] < min_val)
+                if (angles[i] < min_val)
                 {
                     min_val = angles[i];
                     min_idx = i;
@@ -165,7 +171,7 @@ std::vector<glm::vec3> sort_points(const std::vector<glm::vec3>& point_list, con
         ordered_idxs.push_back(min_idx);
     }
 
-    for(const auto& v : ordered_idxs)
+    for (const auto &v : ordered_idxs)
     {
         ordered_points.push_back(point_list[v]);
     }
@@ -173,11 +179,11 @@ std::vector<glm::vec3> sort_points(const std::vector<glm::vec3>& point_list, con
 }
 
 // Returns a new vector of points in sorted order wrt center
-std::vector<glm::vec3> get_ordered_points(const std::vector<glm::vec3>& point_list, const glm::vec3& center)
+std::vector<glm::vec3> get_ordered_points(const std::vector<glm::vec3> &point_list, const glm::vec3 &center)
 {
     std::vector<float> cos_angles;
-    glm::vec3 fixed_vec (1.0, 0.0, 0.0); // For reference angle (X - axis)
-    for(const auto& p : point_list)
+    glm::vec3 fixed_vec(1.0, 0.0, 0.0); // For reference angle (X - axis)
+    for (const auto &p : point_list)
     {
         float dot_prod = glm::dot(fixed_vec, glm::normalize(p - center));
         cos_angles.push_back(dot_prod);
@@ -186,13 +192,15 @@ std::vector<glm::vec3> get_ordered_points(const std::vector<glm::vec3>& point_li
     return sort_points(point_list, cos_angles);
 }
 
-bool is_valid_point(const glm::vec3& point)
-{   
-    // modern c++ lambda expression
-    auto valid_value = [](float value) { return (value >= 0.0f) && (value <= 1.0f); };
-    return (valid_value(point.x)) && (valid_value(point.y)) && (valid_value(point.z));
+bool valid_value(float value)
+{
+    return (value >= 0.0f) && (value <= 1.0f);
 }
 
+bool is_valid_point(const glm::vec3 &point)
+{
+    return (valid_value(point.x)) && (valid_value(point.y)) && (valid_value(point.z));
+}
 
 Renderer::Renderer() {}
 
@@ -377,7 +385,8 @@ void Renderer::display(GLFWwindow *window)
         setup_uniform_values(m_shader);
 
         // Perform View Slicing and populate the vao.
-        view_slicing();
+        // view_slicing();
+        simple_slice();
 
         // std::cout << "\n[DebugLog] Drawing the scene!\n";
         draw_scene(m_shader);
@@ -420,22 +429,22 @@ void Renderer::load_models()
     const int max_slices = 3000;
     glm::vec3 tmp_buffer[max_slices * 6]; // max 6 points per slice.
 
-    glGenVertexArrays(1, &(cur_obj_ptr->vao)); // public member
-    glGenBuffers(1, &(cur_obj_ptr->vbo));
-    glGenBuffers(1, &(cur_obj_ptr->ebo));
+    // glGenVertexArrays(1, &(cur_obj_ptr->vao)); // public member
+    // glGenBuffers(1, &(cur_obj_ptr->vbo));
+    // glGenBuffers(1, &(cur_obj_ptr->ebo));
 
-    // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute
-    // pointer(s).
-    glBindVertexArray(cur_obj_ptr->vao); // model.vao);
+    // // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute
+    // // pointer(s).
+    // glBindVertexArray(cur_obj_ptr->vao); // model.vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo); // model.vbo);
-    // Fill glBufferData with zeros initially with a buffer for max 5000 glm::vec3 points
-    glBufferData(GL_ARRAY_BUFFER, sizeof(tmp_buffer), 0, GL_DYNAMIC_DRAW);
-    // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
-    glEnableVertexAttribArray(0);
-    // Texture coords calculated on the fly in vertex shader
-    glBindVertexArray(0); // Unbind VAO
+    // glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo); // model.vbo);
+    // // Fill glBufferData with zeros initially with a buffer for max 5000 glm::vec3 points
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(tmp_buffer), 0, GL_DYNAMIC_DRAW);
+    // // Position attribute
+    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
+    // glEnableVertexAttribArray(0);
+    // // Texture coords calculated on the fly in vertex shader
+    // glBindVertexArray(0); // Unbind VAO
 
     // Texture Loading
     cur_obj_ptr->texture3dID = cur_obj_ptr->load3dTexture(nano_3dmodel);
@@ -453,17 +462,15 @@ void Renderer::load_models()
 
 void Renderer::draw_scene(Shader &shader)
 {
-    /*
-     * TODO: Remember to enable GL_DEPTH_TEST and GL_CULL_FACE
-     */
     // glEnable(GL_DEPTH_TEST);
     glPointSize(4.0f);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 
-    // glEnable(GL_ALPHA_TEST);
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER,0.06f);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     if (nano_enum_cull == CW)
     {
@@ -643,7 +650,7 @@ void Renderer::view_slicing()
     view = m_camera->GetViewMatrix();
     // float _viewdirX, _viewdirY, _viewdirZ;
     // _viewdirX = view[2][0];
-    glm::vec3 viewDir(view[2][0], view[2][1], view[2][2]);
+    auto viewDir = -1.0f * glm::vec3(view[2][0], view[2][1], view[2][2]);
     glm::vec3 camPosn = m_camera->position;
 
     auto vertexList = cur_obj_ptr->ori_positions;
@@ -664,38 +671,51 @@ void Renderer::view_slicing()
             min_dist = dist;
             min_index = i;
         }
-    }    
+    }
     min_dist -= EPSILON;
     max_dist += EPSILON;
     float delta = (max_dist - min_dist) / nano_sampling_rate;
     float start_lamb = min_dist;
+    // cur_obj_ptr->print_glmvec3(viewDir);
+    // std::cout << "[debug params] " << min_dist << " " << max_dist << " " << delta << std::endl;
 
     // Max 6 intersection points per slicing plane
     // Store tesselated triangle vertices in the vector
     std::vector<glm::vec3> slice_vao_vertices;
     for (int i = 0; i < nano_sampling_rate; i++)
-    {   
+    {
         std::vector<glm::vec3> intersection_points;
         glm::vec3 plane_point = camPosn + (start_lamb + i * delta) * viewDir;
         // Check intersection with all edges
-        for(int j = 0; j < 12; j++)
+        for (int j = 0; j < 12; j++)
         {
             glm::vec3 edge_point = cur_obj_ptr->edges_parametric[j][0];
             glm::vec3 edge_direc = cur_obj_ptr->edges_parametric[j][1];
+
+            // std::cout << "[DEBUG] ";
+            // cur_obj_ptr->print_glmvec3(plane_point);
+            // cur_obj_ptr->print_glmvec3(viewDir);
+            // cur_obj_ptr->print_glmvec3(edge_point);
+            // cur_obj_ptr->print_glmvec3(edge_direc);
+
             float coef = get_intersection_coef(plane_point, viewDir, edge_point, edge_direc);
-            if(coef >= -1.0f * EPSILON) // just to be safe to include 0.0f as well
+            if (coef >= -1.0f * EPSILON) // just to be safe to include 0.0f as well
             {
                 glm::vec3 tmp_point;
-                if(abs(coef - 0.0f) < EPSILON){
+                if (glm::abs(coef) < 0.0f - EPSILON)
+                {
+
                     tmp_point = edge_point;
                 }
                 else
                 {
                     tmp_point = edge_point + coef * edge_direc;
+                    std::cout << "[debug] Valid coef " << coef;
+                    cur_obj_ptr->print_glmvec3(tmp_point);
                 }
-                if(!is_valid_point(tmp_point))
-                {   
-                    std::cout << "  [DEBUG] point out of bounds!" << std::endl;
+                if (!is_valid_point(tmp_point))
+                {
+                    std::cout << "[DEBUG] point out of bounds! Coef: " << coef;
                     cur_obj_ptr->print_glmvec3(tmp_point);
                     exit(1);
                 }
@@ -707,12 +727,12 @@ void Renderer::view_slicing()
             }
         }
         // Obtained a polygon in intersection_points
-        // Sort in counter clockwise order: order wrt angle with x-axis. 
+        // Sort in counter clockwise order: order wrt angle with x-axis.
         auto center = center_point(intersection_points);
         auto sorted_pts = get_ordered_points(intersection_points, center);
         // auto sorted_pts = intersection_points;
-        // Tesselate it and store in the vector for VAO points.        
-        for(int i = 0; i < sorted_pts.size(); i++)
+        // Tesselate it and store in the vector for VAO points.
+        for (int i = 0; i < sorted_pts.size(); i++)
         {
             // if(k_show)
             // {
@@ -724,7 +744,7 @@ void Renderer::view_slicing()
             // p(i), center, p(i+1)
             slice_vao_vertices.push_back(sorted_pts[i]);
             slice_vao_vertices.push_back(center);
-            if(i == (sorted_pts.size() - 1))
+            if (i == (sorted_pts.size() - 1))
             {
                 slice_vao_vertices.push_back(sorted_pts[0]);
             }
@@ -741,62 +761,94 @@ void Renderer::view_slicing()
 }
 
 
-
-
-
-
-
 std::vector<glm::vec3> get_vertices_simple(float zval)
 {
     std::vector<glm::vec3> verts;
-    // glm::vec3 p1(0.0, 0.0, zval);
-    // glm::vec3 p2(0.0, 1.0, zval);
-    // glm::vec3 p3(1.0, 1.0, zval);
-    // glm::vec3 p4(1.0, 0.0, zval);
-    // glm::vec3 p5(0.5, 0.5, zval);
-
     verts.push_back(glm::vec3(0.0, 0.0, zval));
     verts.push_back(glm::vec3(0.0, 1.0, zval));
     verts.push_back(glm::vec3(1.0, 1.0, zval));
     verts.push_back(glm::vec3(1.0, 0.0, zval));
-    verts.push_back(glm::vec3(0.5, 0.5, zval));
-
-    // 12 vertices total for the 4 triangles
-    std::vector<glm::vec3> face_vert;
-
-    for (int i = 3; i >= 0; i--)
-    {
-        int tmp_idx;
-        if (i == 0)
-        {
-            tmp_idx = 3;
-        }
-        else
-        {
-            tmp_idx = i - 1;
-        }
-        face_vert.push_back(verts[4]);
-        face_vert.push_back(verts[tmp_idx]);
-        face_vert.push_back(verts[i]);
-    }
-    return face_vert;
+    return verts;
 }
 
 void Renderer::simple_slice()
 {
     std::vector<glm::vec3> vertSlices;
+    std::vector<uint> veo_idxs;
     int num_samples = nano_sampling_rate;
     float delta = 1.0f / num_samples;
 
     for (int i = num_samples; i > 0; i--)
     {
+        int rev_idx = num_samples - i;
         float zval = 0.0f + i * delta;
         std::vector<glm::vec3> tmp = get_vertices_simple(zval);
-        vertSlices.insert(vertSlices.end(), tmp.begin(), tmp.end());
-    }
-    // std::cout << "vertSlice size: " << vertSlices.size() << std::endl;
-    cur_obj_ptr->vao_points = vertSlices;
+        // 1st triangle
+        vertSlices.push_back(tmp[0]);
+        vertSlices.push_back(tmp[1]);
+        vertSlices.push_back(tmp[2]);
+        // 2nd triangle
+        vertSlices.push_back(tmp[0]);
+        vertSlices.push_back(tmp[2]);
+        vertSlices.push_back(tmp[3]);
 
-    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vertSlices.size(), &(vertSlices[0].x));
+        for (int j = 0; j < 5; j++)
+        {
+            veo_idxs.push_back(6 * rev_idx + j);
+        }
+    } 
+    
+    // Testing
+    // vertSlices.clear();
+    // veo_idxs.clear();
+    // auto tmp = get_vertices_simple(0.0f);
+    // vertSlices.push_back(tmp[0]);
+    // vertSlices.push_back(tmp[1]);
+    // vertSlices.push_back(tmp[2]);
+
+    // vertSlices.push_back(tmp[0]);
+    // vertSlices.push_back(tmp[2]);
+    // vertSlices.push_back(tmp[3]);
+    
+    for(const auto& p : vertSlices)
+    {
+        cur_obj_ptr->print_glmvec3(p);
+    }
+
+
+    glGenVertexArrays(1, &(cur_obj_ptr->vao)); // public member
+    glGenBuffers(1, &(cur_obj_ptr->vbo));
+    glGenBuffers(1, &(cur_obj_ptr->ebo));
+
+    // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute
+    // pointer(s).
+    glBindVertexArray(cur_obj_ptr->vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo); // model.vbo);
+    // Fill glBufferData with vertex poistion data.
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertSlices.size(), &(vertSlices.front()), GL_DYNAMIC_DRAW);
+
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cur_obj_ptr->ebo);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * veo_idxs.size(),
+    //              &(veo_idxs.front()), GL_DYNAMIC_DRAW);
+
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
+    glEnableVertexAttribArray(0);
+    // Texture coords calculated on the fly in vertex shader
+    glBindVertexArray(0); // Unbind VAO
+
+    // cur_obj_ptr->vao_points = vertSlices;
+    // cur_obj_ptr->veo_indices = veo_idxs;
+
+    // glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);
+    // // glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vertSlices.size(), &(vertSlices[0].x));
+
+    // glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * cur_obj_ptr->vao_points.size(),
+    //              &(cur_obj_ptr->vao_points[0]), GL_DYNAMIC_DRAW);
+
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cur_obj_ptr->ebo);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * cur_obj_ptr->veo_indices.size(),
+    //              &(cur_obj_ptr->veo_indices[0]), GL_DYNAMIC_DRAW);
 }
