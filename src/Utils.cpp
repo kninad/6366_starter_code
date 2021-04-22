@@ -6,20 +6,6 @@ const std::string colorbar_path = base_path + "colorbar.png";
 
 const float EPSILON = 1e-6;
 
-GLuint cube_edges[24] = {
-    1, 5,
-    5, 7,
-    7, 3,
-    3, 1,
-    0, 4,
-    4, 6,
-    6, 2,
-    2, 0,
-    0, 1,
-    2, 3,
-    4, 5,
-    6, 7};
-
 bool valid_value(float value)
 {
     return (value >= 0.0f) && (value <= 1.0f);
@@ -192,9 +178,10 @@ std::vector<glm::vec3> Utils::sort_points(const std::vector<glm::vec3> &point_li
         ordered_idxs.push_back(min_idx);
     }
 
-    for (const auto &v : ordered_idxs)
+    for (int i = 0; i < ordered_idxs.size(); i++)
     {
-        ordered_points.push_back(point_list[v]);
+        int idx = ordered_idxs[i];
+        ordered_points.push_back(point_list[idx]);
     }
     return ordered_points;
 }
@@ -218,43 +205,26 @@ bool Utils::is_valid_point(const glm::vec3 &point)
     return (valid_value(point.x)) && (valid_value(point.y)) && (valid_value(point.z));
 }
 
-glm::vec3 Utils::transform_pos(const glm::mat4 &model_mat, const glm::mat4 &view_mat, const glm::vec3 &pos)
+glm::vec3 Utils::transform_pos(const glm::mat4 &modelViewmat, const glm::vec3 &pos)
 {
-    auto tmp_vec = view_mat * model_mat * glm::vec4(pos, 1.0);
+    auto tmp_vec = modelViewmat * glm::vec4(pos, 1.0);
     return glm::vec3(tmp_vec.x, tmp_vec.y, tmp_vec.z);
 }
 
-glm::vec3 Utils::transform_dir(const glm::mat4 &model_mat, const glm::mat4 &view_mat, const glm::vec3 &dir)
+glm::vec3 Utils::transform_dir(const glm::mat4 &modelViewmat, const glm::vec3 &dir)
 {
-    auto tmp_vec = view_mat * model_mat * glm::vec4(dir, 0.0);
+    auto tmp_vec = modelViewmat * glm::vec4(dir, 0.0);
     return glm::vec3(tmp_vec.x, tmp_vec.y, tmp_vec.z);
 }
 
-std::vector<glm::vec3> Utils::transform_cube_vertices(const glm::mat4 &model_mat,
-                                                      const glm::mat4 &view_mat,
+std::vector<glm::vec3> Utils::transform_cube_vertices(const glm::mat4 &modelViewmat,
                                                       const std::vector<glm::vec3> &point_list)
 {
     std::vector<glm::vec3> transformed_points;
     for(const auto& p : point_list)
     {
-        transformed_points.push_back(Utils::transform_pos(model_mat, view_mat, p));
+        transformed_points.push_back(Utils::transform_pos(modelViewmat, p));
     }
     return transformed_points;
-}
-
-std::vector< std::vector<glm::vec3> > Utils::get_edges_info(const std::vector<glm::vec3> &point_list)
-{
-    std::vector< std::vector<glm::vec3> > edges_info;
-    for(int i = 0; i < 12; i++)
-    {
-        int idx = 2*i;
-        std::vector<glm::vec3> curr_edge;
-        auto start_point = point_list[cube_edges[idx]];
-        auto end_point = point_list[cube_edges[idx + 1]];
-        curr_edge.push_back(start_point);
-        curr_edge.push_back(end_point - start_point);
-        edges_info.push_back(curr_edge);
-    }
-    return edges_info;
 }
 

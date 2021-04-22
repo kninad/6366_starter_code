@@ -7,8 +7,6 @@ Camera *Renderer::m_camera = new Camera();
 
 nanogui::Screen *Renderer::m_nanogui_screen = nullptr;
 
-bool k_show = true;
-
 // Pre-defined
 bool Renderer::keys[1024];
 enum render_type
@@ -53,11 +51,12 @@ bool n_rotate_ydown = false;
 bool n_rotate_zdown = false;
 
 render_type nano_enum_render = TRIANGLE;
-culling_type nano_enum_cull = CCW;
+culling_type nano_enum_cull = CW;
 Utils::model3d_t nano_3dmodel = Utils::TEAPOT;
 
 nanogui::Color nano_col_val(0.10f, 0.4f, 0.8f, 1.0f);
 bool nano_transfer_func_sign = false;
+bool nano_simple_slicing = true;
 int nano_sampling_rate = 100;
 
 // good init for 1st run and to ensure Renderer::is_scene_reset starts with a true
@@ -96,7 +95,21 @@ GLuint cube_edges[24] = {
     4, 5,
     6, 7};
 
-
+std::vector<std::vector<glm::vec3>> get_edges_info(const std::vector<glm::vec3> &point_list)
+{
+    std::vector<std::vector<glm::vec3>> edges_info;
+    for (int i = 0; i < 12; i++)
+    {
+        int idx = 2 * i;
+        std::vector<glm::vec3> curr_edge;
+        auto start_point = point_list[cube_edges[idx]];
+        auto end_point = point_list[cube_edges[idx + 1]];
+        curr_edge.push_back(start_point);
+        curr_edge.push_back(end_point - start_point);
+        edges_info.push_back(curr_edge);
+    }
+    return edges_info;
+}
 
 
 
@@ -202,6 +215,7 @@ void Renderer::nanogui_init(GLFWwindow *window)
         nano_col_val = c;
     });
     gui->addVariable("Transfer Function Sign", nano_transfer_func_sign);
+    gui->addVariable("Simple Slicing", nano_simple_slicing);
     gui->addVariable("Sampling Rate", nano_sampling_rate);
 
     // ********************************************************************
@@ -283,8 +297,15 @@ void Renderer::display(GLFWwindow *window)
         setup_uniform_values(m_shader);
 
         // Perform View Slicing and populate the vao.
-        // view_slicing();
-        simple_slice();
+        if(nano_simple_slicing)
+        {
+            simple_slice();
+        }
+        else
+        {
+            view_slicing();
+        }
+                
 
         // std::cout << "\n[DebugLog] Drawing the scene!\n";
         draw_scene(m_shader);
@@ -366,7 +387,7 @@ void Renderer::draw_scene(Shader &shader)
     glCullFace(GL_BACK);
 
     glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER,0.06f);
+    glAlphaFunc(GL_GREATER, 0.06f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -452,11 +473,13 @@ void Renderer::setup_uniform_values(Shader &shader)
     unsigned int modelLoc = glGetUniformLocation(shader.program, "model_mat");
     unsigned int viewLoc = glGetUniformLocation(shader.program, "view");
     unsigned int projLoc = glGetUniformLocation(shader.program, "projection");
+    unsigned int trfFuncLoc = glGetUniformLocation(shader.program, "transferFuncSign");
 
     glUniform4fv(colLoc, 1, glm::value_ptr(custom_color));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model_mat));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniform1i(trfFuncLoc, nano_transfer_func_sign);
 }
 
 void Renderer::camera_move()
@@ -543,22 +566,30 @@ void Renderer::camera_move()
 
 void Renderer::view_slicing()
 {
+    // Model matrix.
+    glm::mat4 model_mat = glm::mat4(1.0f);
     // View Matrix
-    glm::mat4 view = glm::mat4(1.0f);
-    view = m_camera->GetViewMatrix();
-    // float _viewdirX, _viewdirY, _viewdirZ;
-    // _viewdirX = view[2][0];
-    auto viewDir = -1.0f * glm::vec3(view[2][0], view[2][1], view[2][2]);
-    glm::vec3 camPosn = m_camera->position;
+    glm::mat4 view_mat = glm::mat4(1.0f);
+    view_mat = m_camera->GetViewMatrix();
+    glm::mat4 modelViewMat = view_mat * model_mat;
+    glm::mat4 invModelView = glm::inverse(modelViewMat);
 
-    auto vertexList = cur_obj_ptr->ori_positions;
-    float max_dist = glm::dot(viewDir, vertexList[0]);
+    auto viewDir = glm::vec3(0, 0, 1);
+    auto camPosn = glm::vec3(0, 0, 0); // camera is at origin in ModelView space.
+    // Get Transformed cube vertices
+    auto vertexList = Utils::transform_cube_vertices(modelViewMat, cur_obj_ptr->ori_positions);
+    // Get parametric rep of edges using transformed coordinates
+    auto edges_parametric = get_edges_info(vertexList);
+
+    // Find points with min and max Z coords (in CCS)
+    float max_dist = vertexList[0].z;
     float min_dist = max_dist;
     int max_index = 0;
     int min_index = 0;
     for (int i = 1; i < 8; i++)
     {
-        float dist = glm::dot(viewDir, vertexList[i]);
+
+        float dist = vertexList[i].z;
         if (dist > max_dist)
         {
             max_dist = dist;
@@ -572,92 +603,81 @@ void Renderer::view_slicing()
     }
     min_dist -= EPSILON;
     max_dist += EPSILON;
-    float delta = (max_dist - min_dist) / nano_sampling_rate;
-    float start_lamb = min_dist;
-    Utils::print_glmvec3(viewDir);
+    float delta = glm::abs(max_dist - min_dist) / nano_sampling_rate;
+    // float start_lamb = min_dist;
     // std::cout << "[debug params] " << min_dist << " " << max_dist << " " << delta << std::endl;
 
-    // Max 6 intersection points per slicing plane
-    // Store tesselated triangle vertices in the vector
-    std::vector<glm::vec3> slice_vao_vertices;
-    for (int i = 0; i < nano_sampling_rate; i++)
+    std::vector<glm::vec3> vertSlices; // store tesselated triangle verts here and pass to VBO
+    // Back to Front
+    for (int n = nano_sampling_rate; n > 0; n--)
     {
         std::vector<glm::vec3> intersection_points;
-        glm::vec3 plane_point = camPosn + (start_lamb + i * delta) * viewDir;
-        // Check intersection with all edges
+        glm::vec3 plane_point = (min_dist + n * delta) * viewDir;
+        // Check intersection with all 12 edges
         for (int j = 0; j < 12; j++)
         {
-            glm::vec3 edge_point = cur_obj_ptr->edges_parametric[j][0];
-            glm::vec3 edge_direc = cur_obj_ptr->edges_parametric[j][1];
-
-            // std::cout << "[DEBUG] ";
-            // Utils::print_glmvec3(plane_point);
-            // Utils::print_glmvec3(viewDir);
-            // Utils::print_glmvec3(edge_point);
-            // Utils::print_glmvec3(edge_direc);
+            glm::vec3 edge_point = edges_parametric[j][0];
+            glm::vec3 edge_direc = edges_parametric[j][1];
 
             float coef = Utils::get_intersection_coef(plane_point, viewDir, edge_point, edge_direc);
-            if (coef >= -1.0f * EPSILON) // just to be safe to include 0.0f as well
+            if ((coef >= 0.0f - EPSILON) && (coef <= 1.0f + EPSILON))
             {
-                glm::vec3 tmp_point;
-                if (glm::abs(coef) < 0.0f - EPSILON)
-                {
-
-                    tmp_point = edge_point;
-                }
-                else
-                {
-                    tmp_point = edge_point + coef * edge_direc;
-                    std::cout << "[debug] Valid coef " << coef;
-                    Utils::print_glmvec3(tmp_point);
-                }
-                if (!Utils::is_valid_point(tmp_point))
-                {
-                    std::cout << "[DEBUG] point out of bounds! Coef: " << coef;
-                    Utils::print_glmvec3(tmp_point);
-                    exit(1);
-                }
-                // else
-                // {
-                //     Utils::print_glmvec3(tmp_point);
-                // }
+                auto tmp_point = edge_point + coef * edge_direc;
                 intersection_points.push_back(tmp_point);
             }
         }
-        // Obtained a polygon in intersection_points
-        // Sort in counter clockwise order: order wrt angle with x-axis.
-        auto center = Utils::center_point(intersection_points);
-        auto sorted_pts = Utils::get_ordered_points(intersection_points, center);
-        // auto sorted_pts = intersection_points;
-        // Tesselate it and store in the vector for VAO points.
-        for (int i = 0; i < sorted_pts.size(); i++)
-        {
-            // if(k_show)
-            // {
-            //     std::cout << "face: ";
-            //     Utils::print_glmvec3(sorted_pts[i]);
-            //     slice_vao_vertices.push_back(center);
-            // }
 
-            // p(i), center, p(i+1)
-            slice_vao_vertices.push_back(sorted_pts[i]);
-            slice_vao_vertices.push_back(center);
-            if (i == (sorted_pts.size() - 1))
+        // Only go ahead if we atleast have a triangle
+        if (intersection_points.size() > 3)
+        {
+            // intersection points in CCS. transform back to WCS
+            // use the inverse transformation to get point in WCS.
+            std::vector<glm::vec3> wcs_intersectionPts;
+            for (const auto &p : intersection_points)
             {
-                slice_vao_vertices.push_back(sorted_pts[0]);
+                wcs_intersectionPts.push_back(Utils::transform_pos(invModelView, p));
             }
-            else
-            {
-                slice_vao_vertices.push_back(sorted_pts[i + 1]);
+
+            // Obtained a polygon in wcs_intrpts
+            // Sort in counter clockwise order: order wrt angle with x-axis.
+            auto center = Utils::center_point(wcs_intersectionPts);
+            auto sorted_pts = Utils::get_ordered_points(wcs_intersectionPts, center);
+            // Tesselate it and store in the vector for VAO points.
+            for (int k = 0; k < sorted_pts.size(); k++)
+            {   
+                // ccw
+                vertSlices.push_back(sorted_pts[k]);
+                vertSlices.push_back(sorted_pts[(k + 1) % sorted_pts.size()]);
+                vertSlices.push_back(center);
+                // cw: reverse order as well!
+                vertSlices.push_back(sorted_pts[(k + 1) % sorted_pts.size()]);
+                vertSlices.push_back(sorted_pts[k]);
+                vertSlices.push_back(center);
+
             }
         }
     }
-    // std::cout << "[DEBUG] Slicing VAO vertices size: " << slice_vao_vertices.size() << std::endl;
-    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * slice_vao_vertices.size(), &(slice_vao_vertices.front()));
-    k_show = nano_transfer_func_sign;
-}
 
+    cur_obj_ptr->vao_points = vertSlices;
+
+    glGenVertexArrays(1, &(cur_obj_ptr->vao)); // public member
+    glGenBuffers(1, &(cur_obj_ptr->vbo));
+    glGenBuffers(1, &(cur_obj_ptr->ebo));
+
+    // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute
+    // pointer(s).
+    glBindVertexArray(cur_obj_ptr->vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);
+    // Fill glBufferData with vertex poistion data.
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertSlices.size(), &(vertSlices.front()), GL_DYNAMIC_DRAW);
+
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
+    glEnableVertexAttribArray(0);
+    // Texture coords calculated on the fly in vertex shader
+    glBindVertexArray(0); // Unbind VAO
+}
 
 std::vector<glm::vec3> get_vertices_simple(float zval)
 {
@@ -692,21 +712,31 @@ void Renderer::simple_slice()
         int rev_idx = num_samples - i;
         float zval = 0.0f + i * delta;
         std::vector<glm::vec3> tmp = get_vertices_simple(zval);
-        // 1st triangle
-        vertSlices.push_back(tmp[0]);
-        vertSlices.push_back(tmp[1]);
-        vertSlices.push_back(tmp[2]);
-        // 2nd triangle
-        vertSlices.push_back(tmp[0]);
-        vertSlices.push_back(tmp[2]);
-        vertSlices.push_back(tmp[3]);
 
-        for (int j = 0; j < 5; j++)
+        // // 1st triangle
+        // vertSlices.push_back(tmp[0]);
+        // vertSlices.push_back(tmp[1]);
+        // vertSlices.push_back(tmp[2]);
+        // // 2nd triangle
+        // vertSlices.push_back(tmp[0]);
+        // vertSlices.push_back(tmp[2]);
+        // vertSlices.push_back(tmp[3]);
+
+        // for (int j = 0; j < 5; j++)
+        // {
+        //     veo_idxs.push_back(6 * rev_idx + j);
+        // }
+
+        // 4 triangles per face!
+        auto center = Utils::center_point(tmp);
+        for (int i = 0; i < tmp.size(); i++)
         {
-            veo_idxs.push_back(6 * rev_idx + j);
+            vertSlices.push_back(tmp[i]);
+            vertSlices.push_back(tmp[(i + 1) % tmp.size()]);
+            vertSlices.push_back(center);
         }
-    } 
-    
+    }
+
     // Testing
     // vertSlices.clear();
     // veo_idxs.clear();
@@ -718,7 +748,6 @@ void Renderer::simple_slice()
     // vertSlices.push_back(tmp[0]);
     // vertSlices.push_back(tmp[2]);
     // vertSlices.push_back(tmp[3]);
-    
 
     cur_obj_ptr->vao_points = vertSlices;
 
@@ -730,7 +759,7 @@ void Renderer::simple_slice()
     // pointer(s).
     glBindVertexArray(cur_obj_ptr->vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo); // model.vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);
     // Fill glBufferData with vertex poistion data.
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertSlices.size(), &(vertSlices.front()), GL_DYNAMIC_DRAW);
 
@@ -739,5 +768,4 @@ void Renderer::simple_slice()
     glEnableVertexAttribArray(0);
     // Texture coords calculated on the fly in vertex shader
     glBindVertexArray(0); // Unbind VAO
-
 }

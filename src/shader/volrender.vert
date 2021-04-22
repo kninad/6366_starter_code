@@ -8,10 +8,10 @@ out vec4 ourColor;
 out vec3 TexCoord;
 
 uniform vec4 custom_color;
-
 uniform mat4 model_mat;
 uniform mat4 view;
 uniform mat4 projection;
+
 
 
 void main(){

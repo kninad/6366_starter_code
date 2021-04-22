@@ -44,19 +44,16 @@ namespace Utils
 
     bool is_valid_point(const glm::vec3 &point);
 
-    glm::vec3 transform_pos(const glm::mat4 &model_mat, const glm::mat4 &view_mat, const glm::vec3 &pos);
+    glm::vec3 transform_pos(const glm::mat4 &modelViewmat, const glm::vec3 &pos);
+   
+    glm::vec3 transform_dir(const glm::mat4 &modelViewmat, const glm::vec3 &dir);
 
-    glm::vec3 transform_dir(const glm::mat4 &model_mat, const glm::mat4 &view_mat, const glm::vec3 &dir);
-
-    std::vector<glm::vec3> transform_cube_vertices(const glm::mat4 &model_mat,
-                                                   const glm::mat4 &view_mat,
+    std::vector<glm::vec3> transform_cube_vertices(const glm::mat4 &modelViewmat,
                                                    const std::vector<glm::vec3> &points);
-
-    std::vector<std::vector<glm::vec3>> get_edges_info(const std::vector<glm::vec3> &point_list);
 
 };
 
-// file:///home/ninad/Documents/study/sem4/cs6336_graphics/asg04/4_data_and_code/Bonsai_512_512_154.raw
-// file:///home/ninad/Documents/study/sem4/cs6336_graphics/asg04/4_data_and_code/BostonTeapot_256_256_178.raw
-// file:///home/ninad/Documents/study/sem4/cs6336_graphics/asg04/4_data_and_code/Bucky_32_32_32.raw
-// file:///home/ninad/Documents/study/sem4/cs6336_graphics/asg04/4_data_and_code/Head_256_256_225.raw
+// // Bonsai_512_512_154.raw
+// // BostonTeapot_256_256_178.raw
+// // Bucky_32_32_32.raw
+// // Head_256_256_225.raw
