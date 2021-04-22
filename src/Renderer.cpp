@@ -810,11 +810,8 @@ void Renderer::simple_slice()
     // vertSlices.push_back(tmp[2]);
     // vertSlices.push_back(tmp[3]);
     
-    for(const auto& p : vertSlices)
-    {
-        cur_obj_ptr->print_glmvec3(p);
-    }
 
+    cur_obj_ptr->vao_points = vertSlices;
 
     glGenVertexArrays(1, &(cur_obj_ptr->vao)); // public member
     glGenBuffers(1, &(cur_obj_ptr->vbo));
@@ -828,27 +825,10 @@ void Renderer::simple_slice()
     // Fill glBufferData with vertex poistion data.
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertSlices.size(), &(vertSlices.front()), GL_DYNAMIC_DRAW);
 
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cur_obj_ptr->ebo);
-    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * veo_idxs.size(),
-    //              &(veo_idxs.front()), GL_DYNAMIC_DRAW);
-
     // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
     glEnableVertexAttribArray(0);
     // Texture coords calculated on the fly in vertex shader
     glBindVertexArray(0); // Unbind VAO
 
-    // cur_obj_ptr->vao_points = vertSlices;
-    // cur_obj_ptr->veo_indices = veo_idxs;
-
-    // glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);
-    // // glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vertSlices.size(), &(vertSlices[0].x));
-
-    // glBindBuffer(GL_ARRAY_BUFFER, cur_obj_ptr->vbo);
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * cur_obj_ptr->vao_points.size(),
-    //              &(cur_obj_ptr->vao_points[0]), GL_DYNAMIC_DRAW);
-
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cur_obj_ptr->ebo);
-    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * cur_obj_ptr->veo_indices.size(),
-    //              &(cur_obj_ptr->veo_indices[0]), GL_DYNAMIC_DRAW);
 }
